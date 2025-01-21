@@ -34,6 +34,7 @@ library(gtsummary) # pour les tableaux
 
 library(mapsf)
 library(sf)
+#test
 
 # OPTIONS ----
 
