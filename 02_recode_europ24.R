@@ -193,3 +193,4 @@ europ24 <- europ24 %>%
          starts_with("res"), 
          starts_with("ecarts"),
          starts_with("config"))
+#Salut
