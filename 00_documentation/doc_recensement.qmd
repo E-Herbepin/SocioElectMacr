@@ -1,0 +1,11 @@
+---
+title: "Documentation données recensement"
+format: html
+editor: visual
+---
+
+## Téléchargement des données
+
+<https://www.insee.fr/fr/statistiques/7637890>
+
+Fichier détail 2020 : <https://www.insee.fr/fr/statistiques/7706119?sommaire=7637890#consulter>
