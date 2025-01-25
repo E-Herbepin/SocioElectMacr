@@ -3,6 +3,7 @@
 # PACKAGES ----
 
 library(tidyverse) # pour la manipulation des données
+library(magrittr) # pour les pipes
 library(questionr) # pour la description des variables
 library(janitor) # pour des outils de description
 library(broom)
