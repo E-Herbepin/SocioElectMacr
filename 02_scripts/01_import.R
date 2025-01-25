@@ -1,17 +1,48 @@
 #### IMPORT DES DONNEES ----
+# Téléchargement des données ----
 
+# Présidentielles 2017
+# Récupérées le 25/01 sur : https://www.data.gouv.fr/fr/datasets/election-presidentielle-des-23-avril-et-7-mai-2017-resultats-definitifs-du-1er-tour-par-communes/
 
-# ELECTIONS 2017-2022 ----
+if(!file.exists("01_data/Pres17T1.xls")) { #Si le fichier n'est pas trouvé
+    download.file( #On le télécharge
+      url = paste0("https://www.data.gouv.fr/fr/datasets/r/77ed6b2f-c48f-4037-8479-50af74fa5c7a"),
+      destfile = paste0("01_data/Pres17T1.xls"),
+      mode = "wb")}
+
+# Présidentielles 2022
+# Récupérées le 25/01 sur : https://www.data.gouv.fr/fr/datasets/resultats-du-premier-tour-de-lelection-presidentielle-2022-par-commune-et-par-departement/
+
+if(!file.exists("01_data/Pres22T1.csv")) {
+download.file(
+      url = paste0("https://www.data.gouv.fr/fr/datasets/r/54782507-e795-4f9d-aa70-ed06feba22e3"),
+      destfile = paste0("01_data/Pres22T1.csv"),
+      mode = "wb")}
+
+# Nouvelles communes et fusions
+# Récupérées le 25/01 sur : https://www.insee.fr/fr/statistiques/fichier/2549968/
+
+if(!dir.exists("01_data/communes_fusionnees")){
+  dir.create("01_data/communes_fusionnees", showWarnings = FALSE)
+  for (x in 2017:2022) {
+    download.file(
+      url = paste0("https://www.insee.fr/fr/statistiques/fichier/2549968/Communes_nouvelles_", x , if_else(x<=2019,".xls",".xlsx")),
+      destfile = paste0("01_data/communes_fusionnees/Communes_nouvelles_",x,if_else(x<=2019,".xls",".xlsx")),
+      mode = "wb"
+    )
+  }
+}
 
 ## Election présidentielle 2017 ----
-# Récupérées le 24/01 sur : https://www.data.gouv.fr/fr/datasets/election-presidentielle-des-23-avril-et-7-mai-2017-resultats-definitifs-du-1er-tour-par-bureaux-de-vote/
 
 #/!\ Ne faire tourner qu'une fois pour créer le fichier .CSV, puis ne lancer que le read.csv lorsque nécessaire
 
+if(!file.exists("01_data/Pres17T1_recodé.csv")) {
+  
 Pres17T1 <- read_xls(
   here(
     "01_data",
-    "Presidentielle_2017_Resultats_Communes_Tour_1_c.xls"
+    "Pres17T1.xls"
   ),
   skip = 3
 )
@@ -23,9 +54,9 @@ for (i in c(19+c(0:10)*7)) {#Pour chaque "panneau" (i= le numéro de la colonne)
 
 Pres17T1 %<>% select(-c(19:95, which(grepl("%",names(Pres17T1)) | grepl("[.][.]",names(Pres17T1))))) %>% # On enlève les colonnes que l'on a utilisées pour créer les colonnes "NomDuCandidat_Voix" etc. ET les colonnes recalculables (pourcentages)
   rename( "Libellé_commune" = "Libellé de la commune", # On renomme les colonnes pour plus de clarté
-          "Libellé_du_département" = "Libellé du département",
-          "Code_département" = "Code du département",
           "Code_commune" = "Code de la commune",
+          "Libellé_département" = "Libellé du département",
+          "Code_département" = "Code du département",
           "17_Inscrits" = "Inscrits",
           "17_Abstentions" = "Abstentions",
           "17_Votants" = "Votants",
@@ -34,16 +65,22 @@ Pres17T1 %<>% select(-c(19:95, which(grepl("%",names(Pres17T1)) | grepl("[.][.]"
           "17_Exprimés" = "Exprimés",
           "17_Voix_Le_Pen" = "17_Voix_Le Pen",)
 
-write.csv(Pres17T1, "01_data/Pres17T1.csv") # On exporte en CSV (plus pratique pour la suite)
+# On enlève les communes de l'étranger
+Pres17T1 %<>% filter(!str_detect(Pres17T1$Libellé_département, "Français établis hors de France"))
 
-Pres17T1 <- read.csv("01_data/Pres17T1.csv")
+write.csv(Pres17T1, "01_data/Pres17T1_recodé.csv") # On exporte en CSV (plus pratique pour la suite)
+}
 
-# Récupérées le 24/01 sur : https://www.data.gouv.fr/fr/datasets/resultats-du-premier-tour-de-lelection-presidentielle-2022-par-commune-et-par-departement/
+Pres17T1 <- read.csv("01_data/Pres17T1_recodé.csv")
 
+## Election présidentielle 2022 ----
+
+if(!file.exists("01_data/Pres22T1_recodé.csv")) {
+ 
 Pres22T1 <- read_delim(
   here(
     "01_data",
-    "04-resultats-par-commune.csv"
+    "Pres22T1.csv"
   ),
   delim = ",",
   col_select = -c(1)
@@ -51,13 +88,13 @@ Pres22T1 <- read_delim(
 
 Pres22T1$cand_nom %<>% str_to_title()
 
-Pres22T1$commune_code %<>% 
+Pres22T1$commune_code %<>%
   as.numeric() %>%
   as.character()
-Pres22T1$dep_code_3 %<>% 
+Pres22T1$dep_code_3 %<>%
   as.numeric() %>%
   as.character()
-Pres22T1$reg_code_3 %<>% 
+Pres22T1$reg_code_3 %<>%
   as.numeric() %>%
   as.character()
 
@@ -68,7 +105,7 @@ Pres22T1 %<>% select(-c(1,5,4,24,26,27,"num_tour", which(grepl("pourc",names(Pre
   rename(
     "Libellé_commune" = "commune_name",
     "Code_commune" = "commune_code",
-    "Libellé_du_département" = "dep_name",
+    "Libellé_département" = "dep_name",
     "Code_département" = "dep_code_3",
     "Libellé_région" = "reg_name",
     "Code_région" = "reg_code_3",
@@ -92,9 +129,14 @@ Pres22T1 %<>% select(-c(1,5,4,24,26,27,"num_tour", which(grepl("pourc",names(Pre
     "22_Voix_Roussel" = "Roussel",
   )
 
-write.csv(Pres22T1, "01_data/Pres22T1.csv") # On exporte en CSV (plus pratique pour la suite)
+# On enlève les arrondissement des grandes villes
+Pres22T1 %<>% filter(!str_detect(Pres22T1$Libellé_commune, pattern = "arrondissement")) 
 
-Pres22T1 <- read.csv("01_data/Pres22T1.csv")
+
+write.csv(Pres22T1, "01_data/Pres22T1_recodé.csv") # On exporte en CSV (plus pratique pour la suite)
+}
+
+Pres22T1 <- read.csv("01_data/Pres22T1_recodé.csv")
 
 
 # Les communes qui ne sont plus dans le fichier de 2022 (notamment les communes de l'étranger)
@@ -104,9 +146,86 @@ setdiff(Pres17T1$Libellé_commune, Pres22T1$Libellé_commune)
 setdiff(Pres22T1$Libellé_commune, Pres17T1$Libellé_commune)
 
 
+## Communes fusionnées ----
 
-#Communes fusionnées : reprendre les fichiers ici : https://www.insee.fr/fr/information/2549968
+Date_elections_Début <- dmy("23/01/2017", tz = "Europe/Paris") # 3 mois avant le premier tour
+Date_elections_Fin <- dmy("04/03/2022", tz = "Europe/Paris") # date de cloture des inscriptions sur les listes électorales
 
+# On récupère les communes fusionnées entre 2017 et 2022
+
+nouvelles_communes <- bind_rows(
+  read_xls(
+    here("01_data/communes_fusionnees",
+         "Communes_nouvelles_2017.xls"),
+    sheet = 1)[1:(nrow(commmune_fusionnees_2017) - 3),] %>%
+    mutate(
+      DepComN = as.numeric(DepComN),
+      DepComA = as.numeric(DepComA),
+      Date = if_else(is.na(Date2), 
+                     dmy("01/01/2018", tz = "Europe/Paris"), 
+                     dmy(Date2, tz = "Europe/Paris")))%>%
+    select(-c(5:9)), 
+  
+  read_xls(
+    here("01_data/communes_fusionnees",
+         "Communes_nouvelles_2018.xls"),
+    sheet = 1) %>%
+    mutate(
+      DepComN = as.numeric(DepComN),
+      DepComA = as.numeric(DepComA),
+      Date = if_else(is.na(Date2), 
+                     dmy("01/01/2019", tz = "Europe/Paris"), 
+                     ymd(Date2, tz = "Europe/Paris"))) %>%
+    select(-c(5:11)), 
+  
+  read_xls(
+    here("01_data/communes_fusionnees",
+         "Communes_nouvelles_2019.xls"),
+    sheet = 1) %>%
+    mutate(
+      DepComN = as.numeric(DepComN),
+      DepComA = as.numeric(DepComA),
+      Date = if_else(is.na(Date2), 
+                     dmy("01/01/2020", tz = "Europe/Paris"), 
+                     ymd(Date2, tz = "Europe/Paris"))) %>%
+    select(-c(5:11)), 
+  
+  read_xlsx(
+    here("01_data/communes_fusionnees",
+         "Communes_nouvelles_2020.xlsx"),
+    sheet = 1) %>%
+    mutate(
+      DepComN = as.numeric(DepComN),
+      DepComA = as.numeric(DepComA),
+      Date = if_else(is.na(Date2), 
+                     dmy("01/01/2021", tz = "Europe/Paris"), 
+                     ymd(Date2, tz = "Europe/Paris"))) %>%
+    select(-c(5:10)), 
+  
+  read_xlsx(
+    here("01_data/communes_fusionnees",
+         "Communes_nouvelles_2021.xlsx"),
+    sheet = 1) %>%
+    mutate(
+      DepComN = as.numeric(DepComN),
+      DepComA = as.numeric(DepComA),
+      Date = if_else(is.na(Date2), 
+                     dmy("01/01/2022", tz = "Europe/Paris"), 
+                     ymd(Date2, tz = "Europe/Paris"))) %>%
+    select(-c(5:9)), 
+  
+  commmune_fusionnees_2022 <- read_xlsx(
+    here("01_data/communes_fusionnees",
+         "Communes_nouvelles_2022.xlsx"),
+    sheet = 1) %>%
+    mutate(
+      DepComN = as.numeric(DepComN),
+      DepComA = as.numeric(DepComA),
+      Date = if_else(is.na(Date2), 
+                     dmy("01/01/2023", tz = "Europe/Paris"), 
+                     ymd(Date2, tz = "Europe/Paris"))) %>%
+    select(-c(5:9))) %>%
+  filter(Date >= Date_elections_Début & Date <= Date_elections_Fin)
 
 
 # RECENSEMENT 2020 ---- 
