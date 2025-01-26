@@ -22,12 +22,12 @@ download.file(
 # Nouvelles communes et fusions
 # Récupérées le 25/01 sur : https://www.insee.fr/fr/statistiques/fichier/2549968/
 
-if(!dir.exists("01_data/communes_fusionnees")){
-  dir.create("01_data/communes_fusionnees", showWarnings = FALSE)
+if(!dir.exists("01_data/Communes_nouvelles")){
+  dir.create("01_data/Communes_nouvelles", showWarnings = FALSE)
   for (x in 2017:2022) {
     download.file(
       url = paste0("https://www.insee.fr/fr/statistiques/fichier/2549968/Communes_nouvelles_", x , if_else(x<=2019,".xls",".xlsx")),
-      destfile = paste0("01_data/communes_fusionnees/Communes_nouvelles_",x,if_else(x<=2019,".xls",".xlsx")),
+      destfile = paste0("01_data/Communes_nouvelles/Communes_nouvelles_",x,if_else(x<=2019,".xls",".xlsx")),
       mode = "wb"
     )
   }
@@ -171,7 +171,7 @@ Date_elections_Fin <- dmy("04/03/2022", tz = "Europe/Paris") # date de cloture d
 
 nouvelles_communes <- bind_rows(
   read_xls(
-    here("01_data/communes_fusionnees",
+    here("01_data/Communes_nouvelles",
          "Communes_nouvelles_2017.xls"),
     sheet = 1)[1:93,] %>%
     mutate(
@@ -183,7 +183,7 @@ nouvelles_communes <- bind_rows(
     select(-c(5:9)), 
   
   read_xls(
-    here("01_data/communes_fusionnees",
+    here("01_data/Communes_nouvelles",
          "Communes_nouvelles_2018.xls"),
     sheet = 1) %>%
     mutate(
@@ -195,7 +195,7 @@ nouvelles_communes <- bind_rows(
     select(-c(5:11)), 
   
   read_xls(
-    here("01_data/communes_fusionnees",
+    here("01_data/Communes_nouvelles",
          "Communes_nouvelles_2019.xls"),
     sheet = 1) %>%
     mutate(
@@ -207,7 +207,7 @@ nouvelles_communes <- bind_rows(
     select(-c(5:11)), 
   
   read_xlsx(
-    here("01_data/communes_fusionnees",
+    here("01_data/Communes_nouvelles",
          "Communes_nouvelles_2020.xlsx"),
     sheet = 1) %>%
     mutate(
@@ -219,7 +219,7 @@ nouvelles_communes <- bind_rows(
     select(-c(5:10)), 
   
   read_xlsx(
-    here("01_data/communes_fusionnees",
+    here("01_data/Communes_nouvelles",
          "Communes_nouvelles_2021.xlsx"),
     sheet = 1) %>%
     mutate(
@@ -231,7 +231,7 @@ nouvelles_communes <- bind_rows(
     select(-c(5:9)), 
   
   commmune_fusionnees_2022 <- read_xlsx(
-    here("01_data/communes_fusionnees",
+    here("01_data/Communes_nouvelles",
          "Communes_nouvelles_2022.xlsx"),
     sheet = 1) %>%
     mutate(
@@ -251,6 +251,7 @@ rm(Date_elections_Début, Date_elections_Fin)} else {nouvelles_communes <- read.
 
 ## Présidentielles ----
 
+if(!file.exists("01_data/Pres.csv")) {
 #On ajoute un identifiant unique pour les communes 
 Pres17T1$DepCom <- paste0(as.character(Pres17T1$Code_département),Pres17T1$Code_commune)
 Pres22T1$DepCom <- paste0(Pres22T1$Code_département,Pres22T1$Code_commune)
@@ -383,7 +384,9 @@ Pres <- Pres17T1_fusion %>%
   select(c(starts_with("Nb_17"),"DepCom")) %>%
   inner_join(Pres22T1, ., by = "DepCom") #inner_join va enlever les lignes qui n'ont pas de valeurs pour 2022
 
-rm(nouvelles_communes, Pres17T1_fusion)
+write.csv(Pres, "01_data/Pres.csv", row.names = FALSE)
+rm(nouvelles_communes, Pres17T1_fusion)} else {Pres <- read.csv("01_data/Pres.csv")}
+
 ## Recensement ----
 
 # RECENSEMENT 2020 ---- 
