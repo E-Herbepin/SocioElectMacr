@@ -48,14 +48,3 @@ match %>%
   filter(dens %in% c(7, 6, 5)) %>%
   ggplot(aes(x = diff_pourc_macron)) +
   geom_histogram(binwidth = 0.5, fill = "blue", color = "black")
-
-
-
-
-ggplot(match, aes)
-
-unique(match$Libellé_département)
-
-tabel
-
-Pres$DepCom
