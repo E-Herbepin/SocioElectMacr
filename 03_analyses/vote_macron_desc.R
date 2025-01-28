@@ -28,7 +28,39 @@ summary(match$diff_pourc_macron)
 # Moyenne, médiane, quintiles de communes rurales (dens = 7, 6 ,5)
 
 match %>%
-  filter(dens %in% c(7, 6, 5)) %>%
+  filter(dens %in% c(1, 2, 3, 4)) %>%
+  summarise(
+    moyenne = mean(diff_pourc_macron, na.rm = TRUE),
+    mediane = median(diff_pourc_macron, na.rm = TRUE),
+    quartiles = list(quantile(diff_pourc_macron, na.rm = TRUE))
+  )
+
+match %>%
+  filter(dens %in% c(6, 5)) %>%
+  summarise(
+    moyenne = mean(diff_pourc_macron, na.rm = TRUE),
+    mediane = median(diff_pourc_macron, na.rm = TRUE),
+    quartiles = list(quantile(diff_pourc_macron, na.rm = TRUE))
+  )
+
+match %>%
+  filter(dens %in% c(7)) %>%
+  summarise(
+    moyenne = mean(diff_pourc_macron, na.rm = TRUE),
+    mediane = median(diff_pourc_macron, na.rm = TRUE),
+    quartiles = list(quantile(diff_pourc_macron, na.rm = TRUE))
+  )
+
+match %>%
+  filter(dens %in% c(6)) %>%
+  summarise(
+    moyenne = mean(diff_pourc_macron, na.rm = TRUE),
+    mediane = median(diff_pourc_macron, na.rm = TRUE),
+    quartiles = list(quantile(diff_pourc_macron, na.rm = TRUE))
+  )
+
+match %>%
+  filter(dens %in% c(5)) %>%
   summarise(
     moyenne = mean(diff_pourc_macron, na.rm = TRUE),
     mediane = median(diff_pourc_macron, na.rm = TRUE),

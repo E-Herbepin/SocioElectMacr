@@ -479,3 +479,4 @@ france_sf <-
   st_read(shp_path) %>% 
   filter(regrgp_nom != "DROM-COM")
 
+Pres$DepCom %<>% str_pad(width=5, pad ="0")
