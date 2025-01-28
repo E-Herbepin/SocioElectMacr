@@ -4,6 +4,7 @@
 # Présidentielles 2017
 # Récupérées le 25/01 sur : https://www.data.gouv.fr/fr/datasets/election-presidentielle-des-23-avril-et-7-mai-2017-resultats-definitifs-du-1er-tour-par-communes/
 
+
 if(!file.exists("01_data/Pres17T1.xls")) { #Si le fichier n'est pas trouvé
     download.file( #On le télécharge
       url = paste0("https://www.data.gouv.fr/fr/datasets/r/77ed6b2f-c48f-4037-8479-50af74fa5c7a"),
@@ -479,3 +480,12 @@ france_sf <-
   st_read(shp_path) %>% 
   filter(regrgp_nom != "DROM-COM")
 
+Pres$DepCom %<>% str_pad(width=5, pad ="0")
+
+t <- merge(Pres, communes, by.x = "DepCom", by.y= "codgeo", all.x=FALSE)
+
+#pour comprendre pourquoi il y a trop de lignes dans t
+t2 <- table(t$DepCom)
+df <- as.data.frame(t2)
+df2 <- filter(df, df$Freq>1)
+double <- merge(t, df2, by.x ="DepCom", by.y="Var1",all.x=FALSE)
