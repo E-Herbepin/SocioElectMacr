@@ -20,7 +20,7 @@ download.file(
       mode = "wb")}
 
 # Nouvelles communes et fusions
-# Récupérées le 25/01 sur : https://www.insee.fr/fr/statistiques/fichier/2549968/
+# Récupérées le 25/01 sur : https://www.insee.fr/fr/information/2549968
 
 if(!dir.exists("01_data/Communes_nouvelles")){
   dir.create("01_data/Communes_nouvelles", showWarnings = FALSE)
@@ -51,7 +51,7 @@ for (i in c(19+c(0:10)*7)) {#Pour chaque "panneau" (i= le numéro de la colonne)
   for (x in 1:nrow(Pres17T1)) {#Pour chaque commune
     Pres17T1[x,paste0("Nb_17_Voix_",str_to_title(as.character(Pres17T1[x,i+2])))] <- Pres17T1[x,i+4] #la case de la commune dans la colonne "NomDuCandidat_Voix" prend la valeur de la colonne "Voix" qui suit le panneau qu'on regarde
   }}
-rm(i,x)
+
 Pres17T1 %<>% select(-c(19:95, which(grepl("%",names(Pres17T1)) | grepl("[.][.]",names(Pres17T1))))) %>% # On enlève les colonnes que l'on a utilisées pour créer les colonnes "NomDuCandidat_Voix" etc. ET les colonnes recalculables (pourcentages)
   rename( "Libellé_commune" = "Libellé de la commune", # On renomme les colonnes pour plus de clarté
           "Code_commune" = "Code de la commune",
@@ -163,13 +163,13 @@ write.csv(Pres22T1, "01_data/Pres22T1_recodé.csv", row.names = FALSE) # On expo
 
 Pres22T1$Code_commune %<>% str_pad(width = 3, pad = "0")
 
-## Communes fusionnées ----
+## Communes nouvelles ----
 
-if(!file.exists("01_data/nouvelles_communes.csv")) {
+if(!file.exists("01_data/Communes_nouvelles.csv")) {
 Date_elections_Début <- dmy("23/01/2017", tz = "Europe/Paris") # 3 mois avant le premier tour
 Date_elections_Fin <- dmy("04/03/2022", tz = "Europe/Paris") # date de cloture des inscriptions sur les listes électorales
 
-nouvelles_communes <- bind_rows(
+Communes_nouvelles <- bind_rows(
   read_xls(
     here("01_data/Communes_nouvelles",
          "Communes_nouvelles_2017.xls"),
@@ -230,7 +230,7 @@ nouvelles_communes <- bind_rows(
                      ymd(Date2, tz = "Europe/Paris"))) %>%
     select(-c(5:9)), 
   
-  commmune_fusionnees_2022 <- read_xlsx(
+  read_xlsx(
     here("01_data/Communes_nouvelles",
          "Communes_nouvelles_2022.xlsx"),
     sheet = 1) %>%
@@ -243,140 +243,185 @@ nouvelles_communes <- bind_rows(
     select(-c(5:9))) %>%
   filter(Date >= Date_elections_Début & Date <= Date_elections_Fin)
 
-write.csv(nouvelles_communes, "01_data/nouvelles_communes.csv")
+Communes_nouvelles <- rbind(Communes_nouvelles,data.frame(
+    DepComN = c("79078", "95040"),
+    NomCN = c("Plaine-d'Argenson", "Avernes"),
+    DepComA = c("79247", "95259"),
+    NomCA = c("Saint-Etienne-la-Cigogne", "Gadancourt"),
+    Date = c("2018-01-01", "2018-01-01"),
+    stringsAsFactors = FALSE))
 
-rm(Date_elections_Début, Date_elections_Fin)} else {nouvelles_communes <- read.csv("01_data/nouvelles_communes.csv")}
+write.csv(Communes_nouvelles, "01_data/Communes_nouvelles.csv")} else {Communes_nouvelles <- read.csv("01_data/Communes_nouvelles.csv")}
 
 # Fusion des bases ----
 
 ## Présidentielles ----
 
-if(!file.exists("01_data/Pres.csv")) {
+Pres17T1$DepCom <- str_pad(paste0(as.character(Pres17T1$Code_département),Pres17T1$Code_commune),width = 3, pad = "0")
+Pres22T1$DepCom <- str_pad(paste0(Pres22T1$Code_département,Pres22T1$Code_commune),width = 5, pad = "0")
 #On ajoute un identifiant unique pour les communes 
-Pres17T1$DepCom <- paste0(as.character(Pres17T1$Code_département),Pres17T1$Code_commune)
-Pres22T1$DepCom <- paste0(Pres22T1$Code_département,Pres22T1$Code_commune)
 
-# Les communes qui ne sont plus dans le fichier de 2022 (notamment les communes de l'étranger qu'on a enlevé)
-#setdiff(Pres17T1$Libellé_commune, Pres22T1$Libellé_commune)
+if(!file.exists("01_data/Pres.csv")) {
 
-# Les communes qui ne sont pas dans le fichier de 2017 (notamment, les arrondissements des grandes villes qu'on a enlevé)
-#setdiff(Pres22T1$Libellé_commune, Pres17T1$Libellé_commune)
+    Pres17T1_fusion <- Pres17T1
+  
+  #On nettoie la base nouvelles communes
 
+  Communes_nouvelles <- Communes_nouvelles %>%
+    merge( #on ajoute la colonne des noms de 2022 en fonction du Code
+      Pres22T1[, c("DepCom", "Libellé_commune")],
+      by.x = "DepComN",
+      by.y = "DepCom",
+      sort=FALSE,
+      all.x = TRUE
+    ) %>%
+    mutate(
+      
+      Libellé_commune_tr = stri_trans_general(Libellé_commune, "Latin-ASCII") %>%
+        tolower() %>%
+        gsub("-", "", .) %>% #On créé une nouvelle colonne avec les noms 22 "nettoyés"
+        gsub("’", "", .) %>%
+        gsub(" ", "", .) %>%
+        gsub("'", "", .),
+      
+      NomCN_tr = stri_trans_general(NomCN, "Latin-ASCII") %>%
+        tolower() %>%
+        gsub("-", "", .) %>% #On créé une nouvelle colonne avec les noms 17 "nettoyés"
+        gsub("’", "", .) %>%
+        gsub(" ", "", .) %>%
+        gsub("'", "", .),
+      
+      NomCN = if_else(NomCN != Libellé_commune & #Que les noms entre 2022 et communes nouvelles sont différents
+                      NomCN_tr == Libellé_commune_tr,
+                      Libellé_commune, 
+                      NomCN),# On modifie les libellés mais aussi les différents codes
+      
+      DepComN = str_pad(DepComN, width = 5, pad = "0")
+      
+    ) %>%
+    select(-c( ( length(Communes_nouvelles) - 2 ) : length(Communes_nouvelles ))) #On enlève les colonnes que l'on vient de créer
 
-#sum(Pres22T1$Code_commune %in% Pres17T1$Code_commune)
-# L'ensemble des codes communes de 2022 sont dans ceux de 2017 : On a donc uniquement affaire à des fusions
-
-# Parmis les commmunes qui sont "apparus" entre 2017 et 2022, on regarde celles qui ne sont pas dans le fichier des nouvelles communes
-# setdiff(paste0(Pres22T1$Code_département[!(Pres22T1$Libellé_commune %in% Pres17T1$Libellé_commune)],
-#                Pres22T1$Code_commune[!(Pres22T1$Libellé_commune %in% Pres17T1$Libellé_commune)]), 
-#         nouvelles_communes$DepComN)
-
-# il y a 97 communes qui ont apparu entre 2017 et 2022 et qui ne sont pas dans le fichier des nouvelles communes
-# Par exemple :
-
-# Pres22T1$Libellé_commune[Pres17T1$DepCom == "2224"]
-
-# Pres17T1[Pres17T1$Libellé_commune == "Courcelles-sur-Vesle",]
-#Cette commune n'existe pas en 2017
-
-# nouvelles_communes[nouvelles_communes$NomCN == "Courcelles-sur-Vesle"| nouvelles_communes$NomCA == "Courcelles-sur-Vesle"| nouvelles_communes$DepComN =="2224"| nouvelles_communes$DepComA =="2224",]
-# Elle n'existe pas non plus dans le fichier des nouvelles communes
-
-# Les communes qui ont disparu et qu'on ne retrouve pas dans les nouvelles communes : 
-# Pres17T1[!(Pres17T1$DepCom %in% Pres22T1$DepCom) & #Les communes qui ont disparus
-           # !(Pres17T1$DepCom %in% nouvelles_communes$DepComA),] #Et qui ne sont pas dans les communes qui ont fusionné
-# Il n'y en a que 90
-# /!\Ou alors elles ont changé de département
-# A vérifier à partir de https://www.insee.fr/fr/information/7671844
-
-# On remplace celles qu'on a par leurs nouveaux noms
-
-Pres17T1_fusion <- Pres17T1
-
-Pres17T1_fusion$Libellé_commune[!(Pres17T1_fusion$DepCom %in% Pres22T1$DepCom) & #Les communes qui ont disparus
-                                  Pres17T1_fusion$DepCom %in% nouvelles_communes$DepComA] <- #Et qui sont dans les communes qui ont fusionné
-  nouvelles_communes$NomCN[match(Pres17T1_fusion$DepCom[!(Pres17T1_fusion$DepCom %in% Pres22T1$DepCom) & #Prennent le nom associé
-                                                          Pres17T1_fusion$DepCom %in% nouvelles_communes$DepComA],
-                                 nouvelles_communes$DepComA)]
-
-# Existe il des communes qui ont disparu mais dont le code a été réattribué à une autre commune ?
-# Non : d’après l’INSEE les codes des communes qui disparaissent ne sont jamais réutilisés
-
-#On modifie aussi le code des communes 
-Pres17T1_fusion$Code_commune[!(Pres17T1_fusion$DepCom %in% Pres22T1$DepCom) &
-  Pres17T1_fusion$DepCom %in% nouvelles_communes$DepComA] <- 
-  nouvelles_communes$DepComN[match(Pres17T1$DepCom[!(Pres17T1_fusion$DepCom %in% Pres22T1$DepCom) & #Prennent le nom associé
-                                                     Pres17T1_fusion$DepCom %in% nouvelles_communes$DepComA],
-                                 nouvelles_communes$DepComA)] %>% 
-  str_sub(-3)
-
-
-# Et celui des départements
-Pres17T1_fusion$Code_département[!(Pres17T1_fusion$DepCom %in% Pres22T1$DepCom) &
-                                   Pres17T1_fusion$DepCom %in% nouvelles_communes$DepComA] <- 
-  nouvelles_communes$DepComN[match(Pres17T1$DepCom[!(Pres17T1_fusion$DepCom %in% Pres22T1$DepCom) & #Prennent le nom associé
-                                                     Pres17T1_fusion$DepCom %in% nouvelles_communes$DepComA],
-                                   nouvelles_communes$DepComA)] %>% 
-  str_sub(end=2)
-
-
-Pres17T1_fusion[Pres17T1_fusion$DepCom == 	
-                  27676,"Code_commune"] <- "058"
-
-# Enfin on reproduit l'identifiant
-Pres17T1_fusion$DepCom <- paste0(Pres17T1_fusion$Code_département,Pres17T1_fusion$Code_commune)
-
-# Si on regarde à nouveau les communes dont le nom est encore dans la colonne "ancien nom" : ce sont les communes qui ont fusionné avec d'autres mais ont gardé leurs noms
-# Pres17T1_fusion$Libellé_commune[paste0(Pres17T1_fusion$Code_département,Pres17T1_fusion$Code_commune) %in% nouvelles_communes$DepComA]
+  # On remplace celles qu'on a par leurs nouveaux noms
+  
+  Pres17T1_fusion <- Pres17T1_fusion %>%
+    merge( #on ajoute la colonne des noms de 2022 en fonction du Code
+      Communes_nouvelles[, c("NomCN", "NomCA", "DepComN", "DepComA")],
+      by.x = "DepCom",
+      by.y = "DepComA",
+      sort=FALSE,
+      all.x = TRUE
+    ) %>%
+    mutate(
+      Libellé_commune = if_else(!is.na(NomCN), NomCN, Libellé_commune),# On modifie les libellés mais aussi les différents codes
+      Code_commune = if_else(!is.na(NomCN), str_sub(DepComN, -3), Code_commune),
+      Code_département = if_else(!is.na(NomCN), str_sub(DepComN, end = 2), Code_département),
+      DepCom = str_pad(if_else(!is.na(NomCN), DepComN, DepCom), width = 5, pad = "0")
+    )
+  
+  # Attribut aux communes de 2017 le nom de 2022 lorsqu'il diffère d'un accent ou d'une présence de - alors qu'ils ont le même code
+  
+  Pres17T1_fusion <- Pres17T1_fusion %>%
+    left_join( #on ajoute la colonne des noms de 2022 en fonction du Code
+      Pres22T1[, c("DepCom", "Libellé_commune")], 
+      suffix = c("", "_22"),
+      by = "DepCom"
+    ) %>%
+    mutate(
+      Libellé_commune_22_tr = stri_trans_general(Libellé_commune_22, "Latin-ASCII") %>%
+        tolower() %>%
+        gsub("-", "", .) %>% #On créé une nouvelle colonne avec les noms 22 "nettoyés"
+        gsub("’", "", .) %>%
+        gsub(" ", "", .) %>%
+        gsub("'", "", .),
+      
+      Libellé_commune_17_tr = stri_trans_general(Libellé_commune, "Latin-ASCII") %>%
+        tolower() %>%
+        gsub("-", "", .) %>% #On créé une nouvelle colonne avec les noms 17 "nettoyés"
+        gsub("’", "", .) %>%
+        gsub(" ", "", .) %>%
+        gsub("'", "", .),
+      
+      Dist = stringdist(Libellé_commune, Libellé_commune_22, method = "lv"),
+      
+      Libellé_commune = case_when(Libellé_commune_17_tr == Libellé_commune_22_tr #Si les noms nettoyés coincident
+                                  & Libellé_commune_22 != Libellé_commune #Et qu'ils sont "différents" à la base
+                                  &!is.na(Libellé_commune_22) ~ Libellé_commune_22, #On remplace par le nom 2022
+                                  Dist %in% c(1:3,5,7) ~ Libellé_commune_22, #S'il y entre 1 et 3 caractères de différents (plus deux avec 5 et 7)
+                                  DepCom %in% c("06128", "08165", "12133", "02333", "22183","88465", "14689", "17377", "24177", "26291", "31479", "31492", "35306", "38206", "38216", "38348", "41110", "41193", "41222", "47176", "63343", "64293", "65024", "67539", "70472", "71401", "73229", "73269", "74014", "74162", "76087", "79066", "84033", "88413", "93070", "95306")~ Libellé_commune_22,
+                                  TRUE ~ Libellé_commune), #Sinon, on garde le nom de base
+      
+      Libellé_département = case_when(Libellé_commune == "Vallons-de-l'Erdre" ~ "Loire-Atlantique",
+                                      Libellé_commune == "Tessy-Bocage" ~ "Manche",
+                                      TRUE~Libellé_département)
+    ) %>%	
+    select(-c(23:29)) #On enlève les colonnes que l'on vient de créer
+  
+  
 
 # On a maintenant des noms de communes fusionnées qui ont plusieurs lignes (une pour chaque commune qui a fusionné)
 # Il nous faut les regrouper en additionnant leurs valeurs
+
 
 Pres17T1_fusion <- Pres17T1_fusion %>%
   group_by(DepCom, Libellé_commune, Code_commune, Code_département, Libellé_département) %>%
   summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
-# 1 ville est apparue sans raison apparente : Sannerville : elle est le résultat de la séparation de la ville de Saline en deux (Troarn et Sannerville) 
-# En 2022, Sannerville comptait 1 884 hab, Troarn 3 442. On peut donc attribuer les voix de Saline à Troarn et Sannerville proportionnellement à leur population sauf présumer d'une différence idéologique
 
-# On ajoute les nouvelles communes à la base de 2017
+Pres22T1[Pres22T1$DepCom %in% c("14712","14666"), "Libellé_commune"] <- c("Saline","Saline")
+Pres22T1[Pres22T1$DepCom %in% c("14712","14666", "27058"), "Code_commune"] <- c("712","712","676")
+Pres22T1[Pres22T1$DepCom %in% c("14712","14666", "27058"), "Code_département"] <- c("14", "14", "27")
+Pres22T1[Pres22T1$DepCom %in% c("14712","14666", "27058"), "DepCom"] <- c("14712", "14712", "27676")
+
+
+Pres22T1 <- Pres22T1 %>%
+  group_by(DepCom, Libellé_commune, Code_commune, Code_département, Libellé_département) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
+
+# # Les communes de 2017 dont le code est en 2022 mais avec un mauvais libellé
 # 
-# Pres17T1_fusion <- bind_rows(Pres17T1_fusion, 
-#                              data.frame(
-#                                DepCom = c("14712", "14666"),
-#                                Libellé_commune = c("Troarn", "Sannerville"),
-#                                Code_commune = c("712", "666"),
-#                                Code_département = c("14", "14"),
-#                                Libellé_département =c("Calvados", "Calvados"),
-#                                Nb_17_Inscrits = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Inscrits"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Inscrits"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Abstentions = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Abstentions"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Abstentions"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Votants = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Votants"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Votants"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Blancs = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Blancs"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Blancs"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Nuls = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Nuls"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Nuls"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Exprimés = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Exprimés"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Exprimés"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Voix_Le_Pen = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Le_Pen"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Le_Pen"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Voix_Macron = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Macron"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Macron"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Voix_Mélenchon = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Mélenchon"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Mélenchon"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Voix_Fillon = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Fillon"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Fillon"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Voix_Lassalle = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Lassalle"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Lassalle"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Voix_Hammon = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Hamon"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Hamon"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Voix_Asselineau = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Asselineau"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Asselineau"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Voix_Poutou = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Poutou"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Poutou"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Voix_Dupont.Aignan = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Dupont.Aignan"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Dupont.Aignan"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Voix_Arthaud = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Arthaud"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Arthaud"]*1884/(1884+3442)), digit=0)),
-#                                Nb_17_Voix_Cheminade = as.integer(round(c(Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Cheminade"]*3442/(1884+3442),Pres17T1_fusion[Pres17T1_fusion$Libellé_commune == "Saline","Nb_17_Voix_Cheminade"]*1884/(1884+3442)), digit=0))
-#                              ))
-
-# Pres17T1_fusion<-Pres17T1_fusion[Pres17T1_fusion$Libellé_commune != "Saline",]
-
-#On vérifie que toute les communes ont fusionné en comptant les identifiant qui réapparaissent : 
-# Pres17T1_fusion$DepCom[duplicated(Pres17T1_fusion$DepCom)] #Il n'y en a pas
-
-# Pres17T1_fusion$Libellé_commune[Pres17T1_fusion$DepCom[!(Pres17T1_fusion$DepCom %in% Pres22T1$DepCom)] %in% nouvelles_communes$NomCA]
-# Il n'y a pas de communes manquante en 2022, pourtant dans le fichier des nouvelles communes, qui n'ai pas été renommée
-
-# View(Pres17T1_fusion[Pres17T1_fusion$DepCom %in% setdiff(Pres17T1_fusion$DepCom, Pres22T1$DepCom),])
-#Il reste quelques communes (17) qui sont présentes en 2017 mais pas en 2022, Peut être à voir au cas par cas
+# View(
+#   merge(sort=FALSE,
+#     Pres17T1_fusion[Pres17T1_fusion$DepCom %in% Pres22T1$DepCom, c("DepCom", "Libellé_commune")],
+#     Pres22T1[, c("DepCom", "Libellé_commune")],
+#     by = "DepCom",
+#     suffixes = c("_17", "_22")
+#   ) %>%
+#     filter(Libellé_commune_17 != Libellé_commune_22)
+# )
+# 
+# # Les communes de 2017 dont ni le code ni le libellé n'est en 2022
+# 
+# View(
+#   Pres17T1_fusion %>%
+#     filter(
+#       !DepCom %in% Pres22T1$DepCom &
+#         !Libellé_commune %in% Pres22T1$Libellé_commune
+#     )
+# )
+# 
+# 
+# 
+# # Les communes de 2017 dont le code département et le libellé est en 2022 mais avec un mauvais code commune
+# 
+# View(
+#   merge(sort=FALSE,
+#     Pres17T1_fusion[, c("DepCom", "Code_département", "Libellé_commune")],
+#     Pres22T1[, c("DepCom", "Code_département", "Libellé_commune")],
+#     by = c("Code_département", "Libellé_commune"),
+#     suffixes = c("_17", "_22")
+#   ) %>%
+#     filter(DepCom_17 != DepCom_22)
+# )
+# 
+# # Les communes de 2022 dont ni le code ni le libellé n'est en 2017
+# 
+# View(
+#   Pres22T1 %>%
+#     filter(
+#       !DepCom %in% Pres17T1_fusion$DepCom &
+#         !Libellé_commune %in% Pres17T1_fusion$Libellé_commune
+#     )
+# )
 
 #On peut maintenant fusionner les bases :
 
@@ -384,101 +429,230 @@ Pres <- Pres17T1_fusion %>%
   select(c(starts_with("Nb_17"),"DepCom")) %>%
   inner_join(Pres22T1, ., by = "DepCom") #inner_join va enlever les lignes qui n'ont pas de valeurs pour 2022
 
-write.csv(Pres, "01_data/Pres.csv", row.names = FALSE)
-rm(nouvelles_communes, Pres17T1_fusion)} else {Pres <- read.csv("01_data/Pres.csv")}
+write.csv(Pres, "01_data/Pres.csv", row.names = FALSE)} else {Pres <- read.csv("01_data/Pres.csv")}
 
-## Recensement ----
+
 
 # RECENSEMENT 2020 ---- 
+
+if(!file.exists("01_data/PresF.csv")) {
 
 ## Fichiers activité ----
 
 census20_act2a <- read_xlsx(
-  here(
-    "01_data/census20",
+  here("01_data/census20",
     "TD_ACT2A_2020.xlsx"), 
-  skip = 10
-  )
+  skip = 10)%>%
+  mutate(
+    LIBGEO = if_else(CODGEO %in% c("14712","14666"), "Saline", LIBGEO),# On modifie les libellés mais aussi les différents codes
+    CODGEO = case_when(CODGEO %in% c("14712","14666") ~ "14712",
+                       CODGEO =="27676" ~ "27058",
+                       TRUE ~ CODGEO)) %>%
+  group_by(CODGEO, LIBGEO) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
 census20_act2b <- read_xlsx(
   here("01_data/census20",
        "TD_ACT2B_2020.xlsx"), 
-  skip = 10)
+  skip = 10)%>%
+  mutate(
+    LIBGEO = if_else(CODGEO %in% c("14712","14666"), "Saline", LIBGEO),# On modifie les libellés mais aussi les différents codes
+    CODGEO = case_when(CODGEO %in% c("14712","14666") ~ "14712",
+                       CODGEO =="27676" ~ "27058",
+                       TRUE ~ CODGEO)) %>%
+  group_by(CODGEO, LIBGEO) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
 census20_act3 <- read_xlsx(
   here("01_data/census20",
        "TD_ACT3_2020.xlsx"), 
-  skip = 10)
+  skip = 10)%>%
+  mutate(
+    LIBGEO = if_else(CODGEO %in% c("14712","14666"), "Saline", LIBGEO),# On modifie les libellés mais aussi les différents codes
+    CODGEO = case_when(CODGEO %in% c("14712","14666") ~ "14712",
+                       CODGEO =="27676" ~ "27058",
+                       TRUE ~ CODGEO)) %>%
+  group_by(CODGEO, LIBGEO) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
 census20_act4 <- read_xlsx(
   here("01_data/census20",
        "TD_ACT4_2020.xlsx"), 
-  skip = 10)
+  skip = 10)%>%
+  mutate(
+    LIBGEO = if_else(CODGEO %in% c("14712","14666"), "Saline", LIBGEO),# On modifie les libellés mais aussi les différents codes
+    CODGEO = case_when(CODGEO %in% c("14712","14666") ~ "14712",
+                       CODGEO =="27676" ~ "27058",
+                       TRUE ~ CODGEO)) %>%
+  group_by(CODGEO, LIBGEO) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
 ## Fichiers emploi ----
 
 census20_emp1 <- read_xlsx(
   here("01_data/census20",
        "TD_EMP1_2020.xlsx"), 
-  skip = 10)
+  skip = 10)%>%
+  mutate(
+    LIBGEO = if_else(CODGEO %in% c("14712","14666"), "Saline", LIBGEO),# On modifie les libellés mais aussi les différents codes
+    CODGEO = case_when(CODGEO %in% c("14712","14666") ~ "14712",
+                       CODGEO =="27676" ~ "27058",
+                       TRUE ~ CODGEO)) %>%
+  group_by(CODGEO, LIBGEO) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
 census20_emp3 <- read_xlsx(
   here("01_data/census20",
        "TD_EMP3_2020.xlsx"), 
-  skip = 10)
+  skip = 10)%>%
+  mutate(
+    LIBGEO = if_else(CODGEO %in% c("14712","14666"), "Saline", LIBGEO),# On modifie les libellés mais aussi les différents codes
+    CODGEO = case_when(CODGEO %in% c("14712","14666") ~ "14712",
+                       CODGEO =="27676" ~ "27058",
+                       TRUE ~ CODGEO)) %>%
+  group_by(CODGEO, LIBGEO) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
 census20_emp4 <- read_xlsx(
   here("01_data/census20",
        "TD_EMP4_2020.xlsx"), 
-  skip = 10)
+  skip = 10)%>%
+  mutate(
+    LIBGEO = if_else(CODGEO %in% c("14712","14666"), "Saline", LIBGEO),# On modifie les libellés mais aussi les différents codes
+    CODGEO = case_when(CODGEO %in% c("14712","14666") ~ "14712",
+                       CODGEO =="27676" ~ "27058",
+                       TRUE ~ CODGEO)) %>%
+  group_by(CODGEO, LIBGEO) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
 ## Fichiers formation ----
 
 census20_for2 <- read_xlsx(
   here("01_data/census20",
        "TD_FOR2_2020.xlsx"), 
-  skip = 10)
+  skip = 10)%>%
+  mutate(
+    LIBGEO = if_else(CODGEO %in% c("14712","14666"), "Saline", LIBGEO),# On modifie les libellés mais aussi les différents codes
+    CODGEO = case_when(CODGEO %in% c("14712","14666") ~ "14712",
+                       CODGEO =="27676" ~ "27058",
+                       TRUE ~ CODGEO)) %>%
+  group_by(CODGEO, LIBGEO) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
 ## Fichiers logement ----
 
 census20_log1 <- read_xlsx(
   here("01_data/census20",
        "TD_LOG1_2020.xlsx"), 
-  skip = 10)
+  skip = 10)%>%
+  mutate(
+    LIBGEO = if_else(CODGEO %in% c("14712","14666"), "Saline", LIBGEO),# On modifie les libellés mais aussi les différents codes
+    CODGEO = case_when(CODGEO %in% c("14712","14666") ~ "14712",
+                       CODGEO =="27676" ~ "27058",
+                       TRUE ~ CODGEO)) %>%
+  group_by(CODGEO, LIBGEO) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
 ## Fichiers immigration / nationalité ----
 
 census20_img1A <- read_xlsx(
   here("01_data/census20",
        "TD_IMG1A_2020.xlsx"), 
-  skip = 10)
+  skip = 10)%>%
+  mutate(
+    LIBGEO = if_else(CODGEO %in% c("14712","14666"), "Saline", LIBGEO),# On modifie les libellés mais aussi les différents codes
+    CODGEO = case_when(CODGEO %in% c("14712","14666") ~ "14712",
+                       CODGEO =="27676" ~ "27058",
+                       TRUE ~ CODGEO)) %>%
+  group_by(CODGEO, LIBGEO) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
 census20_nat1 <- read_xlsx(
   here("01_data/census20",
        "TD_NAT1_2020.xlsx"), 
-  skip = 10)
+  skip = 10)%>%
+  mutate(
+    LIBGEO = if_else(CODGEO %in% c("14712","14666"), "Saline", LIBGEO),# On modifie les libellés mais aussi les différents codes
+    CODGEO = case_when(CODGEO %in% c("14712","14666") ~ "14712",
+                       CODGEO =="27676" ~ "27058",
+                       TRUE ~ CODGEO)) %>%
+  group_by(CODGEO, LIBGEO) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
 ## Fichiers population ----
 
 census20_pop1B <- read_xlsx(
   here("01_data/census20",
        "TD_POP1B_2020.xlsx"), 
-  skip = 10)
+  skip = 10)%>%
+  mutate(
+    LIBGEO = if_else(CODGEO %in% c("14712","14666"), "Saline", LIBGEO),# On modifie les libellés mais aussi les différents codes
+    CODGEO = case_when(CODGEO %in% c("14712","14666") ~ "14712",
+                       CODGEO =="27676" ~ "27058",
+                       TRUE ~ CODGEO)) %>%
+  group_by(CODGEO, LIBGEO) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
 ## Fichier densité urbaine ----
 
 densite_communes <- read_xlsx(
   here("01_data/densite_communes",
        "grille_densite_7_niveaux_2024.xlsx"), 
-  skip = 4)
+  skip = 4)%>%
+  mutate(
+    LIBGEO = if_else(CODGEO %in% c("14712","14666"), "Saline", LIBGEO),# On modifie les libellés mais aussi les différents codes
+    CODGEO = case_when(CODGEO %in% c("14712","14666") ~ "14712",
+                       CODGEO =="27676" ~ "27058",
+                       TRUE ~ CODGEO)) %>%
+  group_by(CODGEO, LIBGEO) %>%
+  summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
 
 # DONNEES GEOLOC ----
 
-shp_path <- here(
-  "01_data/geoloc", 
-  "fr-esr-referentiel-geographique.shp")
-
 france_sf <- 
-  st_read(shp_path) %>% 
+  st_read(here(
+    "01_data/geoloc", 
+    "fr-esr-referentiel-geographique.shp")) %>% 
   filter(regrgp_nom != "DROM-COM")
 
+Pres22T1$DepCom <- case_when(
+  str_detect(Pres22T1$Code_département, "^97") ~ paste0("97",str_pad(as.numeric(Pres22T1$Code_commune), width = 2, pad = "0")),
+  TRUE ~ paste0(Pres22T1$Code_département,Pres22T1$Code_commune))
+
+Pres17T1$DepCom %<>% str_pad(width = 5, pad = "0")
+Pres22T1$DepCom %<>% str_pad(width = 5, pad = "0")
+
+# Fusion Recensement ----
+
+source("02_scripts/02_recode_census20.R", echo = FALSE )
+
+# On enlève les communes vides
+
+communes <- communes[!communes$codgeo %in% c("55039","55050","55139","55189","55239","55307"),] #Villes commémoratives sans habitants
+
+communes[communes$codgeo %in% c("14712","14666"), "libgeo"] <- c("Saline","Saline")
+communes[communes$codgeo %in% c("14712","14666","27676"), "codgeo"] <- c("14712","14712","27058")
+
+
+
+communes %<>% mutate(
+  DepCom = case_when(
+    str_detect(codgeo, "^97") ~ paste0("97", str_sub(codgeo, 3, 3), str_sub(codgeo, 3, 5)),
+    TRUE ~ codgeo))
+
+
+PresF<-merge(Pres,
+             communes[,!(names(communes) %in% c("libgeo", "codgeo"))],
+             by.x="DepCom",
+             by.y="DepCom",
+             all.x=TRUE)
+  
+  
+
+
+write.csv(PresF, "01_data/PresF.csv", row.names = FALSE)} else {Pres <- read.csv("01_data/PresF.csv")}
+
+
+# Nettoyage ----
+
+rm(i,x,Date_elections_Début, Date_elections_Fin, Communes_nouvelles, Pres17T1_fusion)
