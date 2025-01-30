@@ -272,4 +272,3 @@ communes <- ear20_emploi |>
   left_join(ear20_natio) |> 
   left_join(densite_communes)
 
-rm(list = c(ls(pattern = "^ear"), ls(pattern = "^census"), "densite_communes"))
