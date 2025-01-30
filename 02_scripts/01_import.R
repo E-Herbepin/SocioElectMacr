@@ -6,6 +6,8 @@ if(!dir.exists("01_data")){
 if(!dir.exists("01_data/Présidentielles 2017-2022")){
   dir.create("01_data/Présidentielles 2017-2022", showWarnings = FALSE)}
 
+if(!file.exists("01_data/Présidentielles 2017-2022/Présidentielles&Recensement.csv")) {
+
 # Téléchargement des données ----
 
 # Présidentielles 2017
@@ -442,8 +444,6 @@ if(!file.exists("01_data/Présidentielles 2017-2022/Présidentielles_fusionnées
 
 # RECENSEMENT 2020 ---- 
 
-if(!file.exists("01_data/Présidentielles 2017-2022/Présidentielles&Recensement.csv")) {
-  
   ## Fichiers activité ----
   
   census20_act2a <- read_xlsx(
@@ -621,13 +621,8 @@ if(!file.exists("01_data/Présidentielles 2017-2022/Présidentielles&Recensement
     group_by(CODGEO, LIBGEO, LIBDENS, DENS) %>%
     summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
   
-  # DONNEES GEOLOC ----
-  
-  france_sf <- 
-    st_read(here(
-      "01_data/geoloc", 
-      "fr-esr-referentiel-geographique.shp")) %>% 
-    filter(regrgp_nom != "DROM-COM")
+
+  # Fusion Recensement ----
   
   Pres22T1$DepCom <- case_when(
     str_detect(Pres22T1$Code_département, "^97") ~ paste0("97",str_pad(as.numeric(Pres22T1$Code_commune), width = 2, pad = "0")),
@@ -636,7 +631,7 @@ if(!file.exists("01_data/Présidentielles 2017-2022/Présidentielles&Recensement
   Pres17T1$DepCom %<>% str_pad(width = 5, pad = "0")
   Pres22T1$DepCom %<>% str_pad(width = 5, pad = "0")
   
-  # Fusion Recensement ----
+
   
   source("02_scripts/02_recode_census20.R", echo = FALSE )
   
@@ -656,13 +651,17 @@ if(!file.exists("01_data/Présidentielles 2017-2022/Présidentielles&Recensement
                by.y="DepCom",
                all.x=TRUE)
   
-  
-  
-  
-  rm(list = c(ls(pattern = "^ear"), ls(pattern = "^census"), "densite_communes"))
-  write.csv(PresF, "01_data/Présidentielles 2017-2022/Présidentielles&Recensement.csv", row.names = FALSE)} else {Pres <- read.csv("Présidentielles 2017-2022/Présidentielles&Recensement.csv")}
 
+  # Nettoyage ----
+  
+  rm(list = c(ls(pattern = "^ear"), ls(pattern = "^census"), "densite_communes"), i,x,Date_elections_Début, Date_elections_Fin, Communes_nouvelles, Pres17T1_fusion, communes, Pres, Pres17T1, Pres22T1)
+  
+  write.csv(PresF, "01_data/Présidentielles 2017-2022/Présidentielles&Recensement.csv", row.names = FALSE)} else {PresF <- read.csv("01_data/Présidentielles 2017-2022/Présidentielles&Recensement.csv")}
 
-# Nettoyage ----
+# DONNEES GEOLOC ----
 
-rm(i,x,Date_elections_Début, Date_elections_Fin, Communes_nouvelles, Pres17T1_fusion, communes, Pres, Pres17T1, Pres22T1)
+# france_sf <- 
+#   st_read(here(
+#     "01_data/geoloc", 
+#     "fr-esr-referentiel-geographique.shp")) %>% 
+#   filter(regrgp_nom != "DROM-COM")
