@@ -8,7 +8,7 @@ communes_rurales <- filter (communes, dens %in% c(5,6,7))
 print(ggplot(communes_rurales, aes(x = pmun21))+geom_histogram(aes(y = ..density..), position = 'identity', bins=100)+facet_wrap(~libdens)+coord_cartesian(xlim = c(0, 10000)))
 print(ggplot(communes_rurales, aes(x = pmun21))+geom_histogram(aes(y = ..density..), position = 'identity', bins=300)+facet_wrap(~libdens)+coord_cartesian(xlim = c(0, 3000)))
 
-#Sur les types d'emplois :
+#Sur les types d'emplois et CSP:
 grouped <- communes_rurales%>%
   group_by(dens, libdens)%>% 
   summarise(emp_prec=mean(empl_precaire_pourc, na.rm = TRUE), emp_stable=mean(empl_stable_pourc, na.rm=TRUE), 
@@ -34,3 +34,7 @@ grouped_long2 <- grouped %>%
                values_to = "Pourcentage")
 ggplot(grouped_long2, aes(x = dens, y = Pourcentage, fill = CSP)) +
   geom_bar(stat = "identity", position = "stack")
+
+ggplot(communes_rurales, aes(x = cs_agri_pourc))+geom_histogram(aes(y = ..density..), position = 'identity', bins=50)+facet_wrap(~libdens)+coord_cartesian(xlim = c(0, 100))
+ggplot(communes_rurales[communes_rurales$empl_precaire_n!=0,], aes(x = empl_precaire_pourc))+geom_histogram(aes(y = ..density..), position = 'identity', bins=50)+facet_wrap(~libdens)+coord_cartesian(xlim = c(0, 100))
+

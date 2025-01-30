@@ -75,6 +75,12 @@ ear20_pcs <- census20_act4 |>
          
          cs_ouvr_pourc = 
            100 * cs_ouvr_n / cs_tot,
+         cs_agri_pourc = 
+           100 * cs_agri_n / cs_tot,
+         cs_acce_pourc = 
+           100 * cs_acce_n / cs_tot,
+         cs_pi_pourc = 
+           100 * cs_pi_n / cs_tot,
          cs_empl_pourc = 
            100 * cs_empl_n / cs_tot,
          cs_cpis_pourc = 
