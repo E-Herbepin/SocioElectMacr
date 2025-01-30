@@ -40,6 +40,8 @@ ear20_emploi <- census20_act2b |>
            100 * empl_precaire_n / empl_tot,
          empl_stable_pourc = 
            100 * empl_stable_n / empl_tot,
+         empl_indep_pourc = 
+           100 * empl_indep_n / empl_tot,
          empl_employeurs_pourc = 
            100 * empl_employeurs_n / empl_tot) |> 
   select(CODGEO, LIBGEO, starts_with("empl")) |> 
