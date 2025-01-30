@@ -13,8 +13,8 @@
 # 22 : Non salariés : Employeurs
 # 23 : Non salariés : Aides familiaux
 
-census20_act2b |> 
-  names()
+# census20_act2b |> 
+#   names()
 
 ear20_emploi <- census20_act2b |> 
   # sommer les variables par catégorie de variable EMPLXX
@@ -28,24 +28,25 @@ ear20_emploi <- census20_act2b |>
          empl22 = rowSums(across(contains("EMPL22")), na.rm = TRUE),
          empl23 = rowSums(across(contains("EMPL23")), na.rm = TRUE),
          empl_tot = rowSums(across(starts_with("EMPL")), na.rm = TRUE),
-  # catégorisation : précaires / stables / inépendants / employeurs : effectifs       
+         # catégorisation : précaires / stables / inépendants / employeurs : effectifs       
          empl_precaire_n = 
            empl11 + empl12 + empl13 + 
            empl14 + empl15,
          empl_stable_n = empl16,
          empl_indep_n = empl21,
          empl_employeurs_n = empl22,
-  # catégorisation : précaires / stables / inépendants / employeurs : pourcentages        
+         # catégorisation : précaires / stables / indépendants / employeurs : pourcentages        
          empl_precaire_pourc = 
            100 * empl_precaire_n / empl_tot,
          empl_stable_pourc = 
            100 * empl_stable_n / empl_tot,
          empl_employeurs_pourc = 
-           100 * empl_employeurs_n / empl_tot) |> 
+           100 * empl_employeurs_n / empl_tot
+  ) |> 
   select(CODGEO, LIBGEO, starts_with("empl")) |> 
   rename_all(tolower)
 
-summary(ear20_emploi$empl_precaire_pourc)
+# summary(ear20_emploi$empl_precaire_pourc)
 
 # PCS REGROUPEE ----
 
@@ -58,8 +59,8 @@ summary(ear20_emploi$empl_precaire_pourc)
 # 5 : Employés
 # 6 : Ouvriers
 
-census20_act4 |> 
-  names()
+# census20_act4 |> 
+#   names()
 
 ear20_pcs <- census20_act4 |> 
   mutate(cs_agri_n = rowSums(across(contains("CS1_61")), na.rm = TRUE),
@@ -96,7 +97,7 @@ ear20_pcs <- census20_act4 |>
                                 "CPIS Q2",
                                 "CPIS Q3",
                                 "CPIS Q4"))
-         ) |> 
+  ) |> 
   select(CODGEO, LIBGEO, starts_with("cs_")) |> 
   rename_all(tolower)
 
@@ -137,8 +138,8 @@ ear20_pcs <- census20_act4 |>
 # 68 : Ouvriers non qualifiés de type artisanal
 # 69 : Ouvriers agricoles
 
-census20_emp3 |> 
-  names()
+# census20_emp3 |> 
+#   names()
 
 ear20_cs29 <- census20_emp3 |> 
   mutate(cs_10 = rowSums(across(contains("CS3_2910")), na.rm = TRUE),
@@ -183,8 +184,8 @@ ear20_cs29 <- census20_emp3 |>
 # 4 : Logements vacants
 
 
-census20_log1 |> 
-  names()
+# census20_log1 |> 
+#   names()
 
 ear20_log <- census20_log1 |> 
   mutate(log_resprinc = rowSums(across(contains("CATL1")), na.rm = TRUE),
@@ -194,9 +195,9 @@ ear20_log <- census20_log1 |>
          
          log_vacants_pourc = 
            100 * (log_vacants / (log_resprinc +
-                                  log_logoccas +
-                                  log_ressecond +
-                                  log_ressecond)),
+                                   log_logoccas +
+                                   log_ressecond +
+                                   log_ressecond)),
          log_vacants_pourc = if_else(
            log_resprinc +
              log_logoccas +
@@ -211,13 +212,13 @@ ear20_log <- census20_log1 |>
   select(CODGEO, LIBGEO, starts_with("log_")) |> 
   rename_all(tolower)
 
-summary(ear20_log$log_vacants)
-summary(ear20_log$log_vacants_pourc)
-
-ggplot(ear20_log) + 
-  aes(x = log_vacants_pourc) + 
-  geom_histogram(col = "white")
-
+# summary(ear20_log$log_vacants)
+# summary(ear20_log$log_vacants_pourc)
+# 
+# ggplot(ear20_log) + 
+#   aes(x = log_vacants_pourc) + 
+#   geom_histogram(col = "white")
+# 
 
 # IMMIGRES ----
 # IMG1 --> IMMI
@@ -227,8 +228,8 @@ ggplot(ear20_log) +
 # 2 : Non immigrés
 
 
-census20_img1A |> 
-  names()
+# census20_img1A |> 
+  # names()
 
 ear20_immi <- census20_img1A |> 
   mutate(immi_oui = rowSums(across(contains("IMMI1")), na.rm = TRUE),
@@ -243,8 +244,8 @@ ear20_immi <- census20_img1A |>
 # 1 : Français
 # 2 : Etrangers
 
-census20_nat1 |> 
-  names()
+# census20_nat1 |> 
+  # names()
 
 ear20_natio <- census20_img1A |> 
   mutate(nat_fr = rowSums(across(contains("INATC1")), na.rm = TRUE),
@@ -252,7 +253,7 @@ ear20_natio <- census20_img1A |>
   select(CODGEO, LIBGEO, starts_with("nat_")) |> 
   rename_all(tolower)
 
-summary(ear20_natio$nat_fr)
+# summary(ear20_natio$nat_fr)
 
 # DENSITE URBAINE ----
 # LIBDENS
@@ -270,5 +271,4 @@ communes <- ear20_emploi |>
   left_join(ear20_immi) |> 
   left_join(ear20_natio) |> 
   left_join(densite_communes)
-
 

@@ -2,6 +2,8 @@
 
 # PACKAGES ----
 
+library(stringi)
+library(stringdist)
 library(tidyverse) # pour la manipulation des données
 library(magrittr) # pour les pipes
 library(questionr) # pour la description des variables
