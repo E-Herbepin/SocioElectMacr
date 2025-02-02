@@ -1,3 +1,8 @@
+
+# On enlève les communes de l'étranger
+Pres17T1 %<>% filter(!str_detect(Pres17T1$Libellé_département, "Français établis hors de France"))
+
+# On attribut les codes départements à la corse et aux DOM
 #### IMPORT DES DONNEES ----
 # Téléchargement des données ----
 
@@ -65,11 +70,6 @@ Pres17T1 %<>% select(-c(19:95, which(grepl("%",names(Pres17T1)) | grepl("[.][.]"
           "Nb_17_Nuls" = "Nuls",
           "Nb_17_Exprimés" = "Exprimés",
           "Nb_17_Voix_Le_Pen" = "Nb_17_Voix_Le Pen",)
-
-# On enlève les communes de l'étranger
-Pres17T1 %<>% filter(!str_detect(Pres17T1$Libellé_département, "Français établis hors de France"))
-
-# On attribut les codes départements à la corse et aux DOM
 
 Pres17T1$Code_département <- case_when(
   Pres17T1$Libellé_département == "Corse-du-Sud" ~ "2A",
@@ -482,10 +482,4 @@ france_sf <-
 
 Pres$DepCom %<>% str_pad(width=5, pad ="0")
 
-t <- merge(Pres, communes, by.x = "DepCom", by.y= "codgeo", all.x=FALSE)
 
-#pour comprendre pourquoi il y a trop de lignes dans t
-t2 <- table(t$DepCom)
-df <- as.data.frame(t2)
-df2 <- filter(df, df$Freq>1)
-double <- merge(t, df2, by.x ="DepCom", by.y="Var1",all.x=FALSE)
