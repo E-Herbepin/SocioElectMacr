@@ -19,18 +19,34 @@ Pres <- Pres %>%
 
 summary(Pres$diff_pourc_macron)
 
-boxplot(Pres$diff_pourc_macron)
+names(Pres)
+names(communes)
 
-Pres %>%
+match <- Pres |> 
+  right_join(communes, 
+             by = c("Libellé_commune" = "libgeo"))
+
+match <- match %>%
+  filter(!is.na(Libellé_région))
+
+match <- match %>%
+  filter(!Libellé_région %in% c("Guyane", "La Réunion", "Martinique", "Guadeloupe"))
+
+boxplot(match$diff_pourc_macron)
+
+match %>%
   filter(dens %in% c(6, 5, 4)) %>%
   ggplot(aes(y = diff_pourc_macron)) +
   geom_boxplot() +
   labs(title = "Boxplot de diff_pourc_macron", y = "Différence pourcentage Macron")
 
-Pres %>%
+match %>%
+
   filter(dens %in% c(6, 5, 4)) %>%
   summarise(
     moyenne = mean(diff_pourc_macron, na.rm = TRUE),
     mediane = median(diff_pourc_macron, na.rm = TRUE),
     quartiles = list(quantile(diff_pourc_macron, na.rm = TRUE))
-  )
+
+unique(match$Libellé_région)
+
