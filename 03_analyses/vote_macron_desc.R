@@ -41,13 +41,12 @@ match %>%
   labs(title = "Boxplot de diff_pourc_macron", y = "Différence pourcentage Macron")
 
 match %>%
+
   filter(dens %in% c(6, 5, 4)) %>%
   summarise(
     moyenne = mean(diff_pourc_macron, na.rm = TRUE),
     mediane = median(diff_pourc_macron, na.rm = TRUE),
     quartiles = list(quantile(diff_pourc_macron, na.rm = TRUE))
-  )
 
 unique(match$Libellé_région)
-
 
