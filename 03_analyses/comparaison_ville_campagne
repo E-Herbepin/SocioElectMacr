@@ -1,0 +1,62 @@
+##calcule campagnes
+# Filtrer les communes dont la densité est comprise entre 4 et 7
+match_campagne <- match %>% filter(dens >= 4 & dens <= 7)
+view(match_campagne)      
+  
+  # Calculer la moyenne du pourcentage de vote pour Macron dans ces communes
+pourc_macron_campagne_17 <- mean(match_campagne$pourc_macron_17, na.rm = TRUE)
+  
+  # Afficher la moyenne
+print(pourc_macron_campagne_17)
+summary(match_campagne$pourc_macron_17)  
+
+##calcule villes
+# Filtrer les communes dont la densité est comprise entre 1 et 3
+match_villes <- match %>% filter(dens >= 1 & dens <= 3)
+view(match_villes)      
+
+# Calculer la moyenne du pourcentage de vote pour Macron dans ces communes
+pourc_macron_villes_17 <- mean(match_villes$pourc_macron_17, na.rm = TRUE)
+
+# Afficher la moyenne
+print(pourc_macron_villes_17)
+summary(match_villes)  
+
+##comparaison villes campagnes
+
+
+groupes_data <- c(match_campagne$pourc_macron_17, match_villes$pourc_macron_17)
+
+labels <- rep(c("Campagnes", "Villes"), c(length(match_campagne$pourc_macron_17), length(match_villes$pourc_macron_17)))
+
+# Créer un boxplot
+boxplot(groupes_data ~ labels, col = c("lightblue", "lightgreen"),
+        main = "Distribution des pourcentages de vote pour Macron en 2017",
+        ylab = "Pourcentage de vote pour Macron (%)")
+
+
+
+
+moyennes <- c(pourc_macron_campagne_17, pourc_macron_villes_17)
+
+groupes <- c("Campagnes", "Villes")
+
+# Créer un barplot
+barplot(moyennes, names.arg = groupes, col = c("lightblue", "lightgreen"),
+        main = "Comparaison du pourcentage de vote pour Macron",
+        ylab = "Pourcentage de vote pour Macron en 2017 (%)", 
+        ylim = c(0, max(moyennes) + 5))
+
+
+moyennes22 <- c(pourc_macron_campagne_22, pourc_macron_villes_22)
+
+groupes <- c("Campagnes", "Villes")
+
+# Créer un barplot
+barplot(moyennes22, names.arg = groupes, col = c("lightblue", "lightgreen"),
+        main = "Comparaison du pourcentage de vote pour Macron",
+        ylab = "Pourcentage de vote pour Macron en 2022 (%)", 
+        ylim = c(0, max(moyennes) + 5))
+
+
+evolution <- c(pourc_macron_campagne_22, pourc_macron_villes_22)
