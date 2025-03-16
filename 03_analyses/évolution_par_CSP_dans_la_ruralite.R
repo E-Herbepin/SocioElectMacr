@@ -1,6 +1,11 @@
 {
   PresF_tmp <- PresF %>%
     mutate_at(c("cs_cpis_pourc", "cs_empl_pourc", "cs_ouvr_pourc" ), ~replace(., is.na(.), 0)) %>%
+    mutate(
+      cs_pi_pourc = cs_pi_n * 100 / cs_tot,
+      cs_agri_pourc = cs_agri_n * 100 / cs_tot,
+      cs_acce_pourc = cs_acce_n * 100 / cs_tot,
+    )
     filter(!is.na(diff_pourc_macron) & !is.na(libdens) & dens %in% c("5", "6", "7")) %>%
     group_by(libdens)
   
@@ -32,7 +37,6 @@ tab <- rbind(
   
   PresF_tmp %>%
     mutate(
-      cs_pi_pourc = cs_pi_n * 100 / cs_tot,
       decile = as.factor(ntile(cs_pi_pourc, 10))
     ) %>%
     select(decile, diff_pourc_macron, libdens) %>%
@@ -43,7 +47,6 @@ tab <- rbind(
   
   PresF_tmp %>%
     mutate(
-      cs_agri_pourc = cs_agri_n * 100 / cs_tot,
       decile = as.factor(ntile(cs_agri_pourc, 10))
     ) %>%
     select(decile, diff_pourc_macron, libdens) %>%
@@ -54,7 +57,6 @@ tab <- rbind(
   
   PresF_tmp %>%
     mutate(
-      cs_acce_pourc = cs_acce_n * 100 / cs_tot,
       decile = as.factor(ntile(cs_acce_pourc, 10))
     ) %>%
     select(decile, diff_pourc_macron, libdens) %>%
@@ -65,7 +67,6 @@ tab <- rbind(
   
   PresF_tmp %>%
     mutate(
-      cs_acce_pourc = cs_acce_n * 100 / cs_tot,
       decile = as.factor(ntile(cs_acce_pourc, 10))
     ) %>%
     select(decile, diff_pourc_macron, libdens) %>%
@@ -75,19 +76,20 @@ tab <- rbind(
     mutate(CSP = "Artisans, commerçants et chefs d'entreprise")
 ) %>%
   filter(decile %in% c(1:10)) %>%
-  mutate(cat = factor(
-    case_when(
-      CSP %in% c("Employés", "Artisans, commerçants et chefs d'entreprise") ~ "Diminue",
-      CSP %in% c(
-        "Cadres et professions intellectuelles supérieures",
-        "Professions Intermédiaires",
-        "Agriculteurs exploitants"
-      ) ~ "Stagne",
-      CSP %in% c("Ouvriers") ~ "Augmente"
-    ),
-    ordered = TRUE
-  ))
+  mutate(
+    CSP = as.factor(CSP),
+    CSP = fct_relevel(CSP, c(
+      "Agriculteurs exploitants",
+      "Ouvriers",
+      "Employés",
+      "Professions Intermédiaires",
+      "Artisans, commerçants et chefs d'entreprise",
+      "Cadres et professions intellectuelles supérieures"
+    )))
 }
+
+
+
 ggplot(tab, aes(
   x = decile,
   y = moyenne,
@@ -103,13 +105,15 @@ ggplot(tab, aes(
     title = "Evolution du vote Macron en fonction des proportions de CSP",
     x = "Décile de la proportion de chaque CSP",
     y = "Point de pourcentage gagné en moyenne par Macron entre 2017 et 2022",
-    caption = "Lectures :
-       1: Le vote Macron des 10% des communes rurales qui possèdent le plus d'employés a augmenté, en moyenne, de 4 points de pourcentage.
-       2: Dans les communes rurales, plus la proportion d'ouvriers augmente, plus l'augmentation du vote Macron entre 2017 et 2022 est forte.
-           Dans les grands centres urbains, c'est l'inverse.
-       3: La proportion de professions intermédiaires dans les communes rurales semble moins corrélée à l'augmentation du vote pour Macron que dans les communes à densité intermédiaire."
-  ) +
+    caption = "
+    Sources : Résultats des premiers tours des élections présidentielles 2017 et 2022, DDCT ; Recensement, INSEE.
+    Champs : Communes rurales françaises (d'après la définition en 7 catégories de l'INSEE).
+    Lectures :
+       1: Le vote pour E.Macron des 10% des bourgs ruraux qui possèdent le plus d'employés a augmenté, en moyenne, d'environ 3,7 points de pourcentage entre 2017 et 2022.
+       2: Dans les communes rurales à habitat dispersé, plus la proportion d'ouvriers augmente, plus l'augmentation moyenne du vote Macron entre 2017 et 2022 est forte."
+    ) +
   guides(colour = "none") +
+  theme_minimal(base_family = "Times New Roman") +
   theme(plot.caption = element_text(hjust = 0))
 
 ggsave(
@@ -120,18 +124,7 @@ ggsave(
 )
 
 
-tab %>% mutate(
-  CSP = as.factor(CSP),
-  CSP = fct_relevel(CSP, c(
-    "Agriculteurs exploitants",
-    "Ouvriers",
-    "Employés",
-    "Professions Intermédiaires",
-    "Artisans, commerçants et chefs d'entreprise",
-    "Cadres et professions intellectuelles supérieures"
-  )),
-  CSP = fct_recode(CSP, "Cadres et PIS" = "Cadres et professions intellectuelles supérieures")
-) %>%
+tab %>%
   ggplot(aes(
     x = decile,
     y = moyenne,
@@ -144,19 +137,22 @@ tab %>% mutate(
   geom_line() +
   labs(
     fill = "Classes socio-professionelles",
-    title = "Evolution du vote Macron en fonction des proportions de classe socio-professionelle",
+    title = "Evolution du vote Macron en fonction des proportions de CSP",
     x = "Décile de la proportion de chaque CSP",
     y = "Point de pourcentage gagné en moyenne par Macron entre 2017 et 2022",
-    caption = "Lectures :
-       1: Le vote Macron des 10% des communes rurales qui possèdent le plus d'employés a augmenté, en moyenne, de 4 points 
-           de pourcentage.
-       2: Dans les communes rurales, plus la proportion d'ouvriers augmente, plus l'augmentation du vote Macron entre 2017 et 2022
-           est forte. Dans les grands centres urbains, c'est l'inverse.
-       3: La proportion de professions intermédiaires dans les communes rurales semble moins corrélée à l'augmentation du vote
-           pour Macron que dans les communes à densité intermédiaire."
+    caption = "
+    Sources : Résultats des premiers tours des élections présidentielles 2017 et 2022, DDCT ; Recensement, INSEE.
+    Champ : Communes rurales françaises (d'après la définition en 7 catégories de l'INSEE).
+    Lectures :
+       1: Le vote pour E.Macron des 10% des bourgs ruraux qui possèdent le plus d'employés a augmenté, en moyenne, d'environ 3,7 points
+          de pourcentage entre 2017 et 2022.
+       2: Dans les communes rurales à habitat dispersé, plus la proportion d'ouvriers augmente, plus l'augmentation moyenne du vote Macron 
+          entre 2017 et 2022 est forte."
   ) +
-  guides(colour = "none", fill = "none") +
-  theme(plot.caption = element_text(hjust = 0))
+  guides(colour = "none", fill= "none") +
+  theme(plot.caption = element_text(hjust = 0),
+        text = element_text(family = "Times New Roman"),
+        strip.text.y = element_text(angle = 0))
 
 ggsave(
   "03_analyses/fig9.png",
