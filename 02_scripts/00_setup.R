@@ -12,6 +12,7 @@ library(broom)
 library(officer)
 library(here)
 library(gtsummary)
+library(Hmisc)
 
 library(knitr)
 library(rmarkdown)

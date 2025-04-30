@@ -1,3 +1,8 @@
+
+# On enlève les communes de l'étranger
+Pres17T1 %<>% filter(!str_detect(Pres17T1$Libellé_département, "Français établis hors de France"))
+
+# On attribut les codes départements à la corse et aux DOM
 #### IMPORT DES DONNEES ----
 
 if(!dir.exists("01_data")){
@@ -12,6 +17,7 @@ if(!file.exists("01_data/Présidentielles 2017-2022/Présidentielles&Recensement
 
 # Présidentielles 2017
 # Récupérées le 25/01 sur : https://www.data.gouv.fr/fr/datasets/election-presidentielle-des-23-avril-et-7-mai-2017-resultats-definitifs-du-1er-tour-par-communes/
+
 
 if(!file.exists("01_data/Présidentielles 2017-2022/Pres17T1_DL.xls")) { #Si le fichier n'est pas trouvé
   download.file( #On le télécharge
@@ -662,8 +668,12 @@ if(!file.exists("01_data/Présidentielles 2017-2022/Présidentielles_fusionnées
 
 # DONNEES GEOLOC ----
 
-# france_sf <- 
-#   st_read(here(
-#     "01_data/geoloc", 
-#     "fr-esr-referentiel-geographique.shp")) %>% 
-#   filter(regrgp_nom != "DROM-COM")
+shp_path <- here(
+  "01_data/geoloc", 
+  "fr-esr-referentiel-geographique.shp")
+
+france_sf <- 
+  st_read(shp_path) %>% 
+  filter(regrgp_nom != "DROM-COM")
+
+Pres$DepCom %<>% str_pad(width=5, pad ="0")

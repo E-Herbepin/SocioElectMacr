@@ -40,6 +40,8 @@ ear20_emploi <- census20_act2b |>
            100 * empl_precaire_n / empl_tot,
          empl_stable_pourc = 
            100 * empl_stable_n / empl_tot,
+         empl_indep_pourc = 
+           100 * empl_indep_n / empl_tot,
          empl_employeurs_pourc = 
            100 * empl_employeurs_n / empl_tot
   ) |> 
@@ -74,6 +76,12 @@ ear20_pcs <- census20_act4 |>
          
          cs_ouvr_pourc = 
            100 * cs_ouvr_n / cs_tot,
+         cs_agri_pourc = 
+           100 * cs_agri_n / cs_tot,
+         cs_acce_pourc = 
+           100 * cs_acce_n / cs_tot,
+         cs_pi_pourc = 
+           100 * cs_pi_n / cs_tot,
          cs_empl_pourc = 
            100 * cs_empl_n / cs_tot,
          cs_cpis_pourc = 
@@ -255,6 +263,66 @@ ear20_natio <- census20_nat1 |>
 
 # summary(ear20_natio$nat_fr)
 
+# AGE 
+
+ear20_age <- census20_pop1B |>
+  mutate (Age_q1_5 = rowSums(across(any_of(c(ends_with('001'),ends_with('002'),ends_with('003'),ends_with('004'),
+                               ends_with('005')))), na.rm=TRUE),
+          Age_q6_10 = rowSums(across(any_of(c(ends_with('006'),ends_with('007'),ends_with('008'),ends_with('009'),
+                               ends_with('0010')))), na.rm=TRUE),
+          Age_q11_15 = rowSums(across(any_of(c(ends_with('011'),ends_with('012'),ends_with('013'),ends_with('014'),
+                               ends_with('015')))), na.rm=TRUE),
+          Age_q16_20 = rowSums(across(any_of(c(ends_with('016'),ends_with('017'),ends_with('018'),ends_with('019'),
+                                  ends_with('020')))), na.rm=TRUE),
+          Age_q21_25 = rowSums(across(any_of(c(ends_with('021'),ends_with('022'),ends_with('023'),ends_with('024'),
+                                  ends_with('025')))), na.rm=TRUE),
+          Age_q26_30 = rowSums(across(any_of(c(ends_with('026'),ends_with('027'),ends_with('028'),ends_with('029'),
+                                  ends_with('030')))), na.rm=TRUE),
+          Age_q31_35 = rowSums(across(any_of(c(ends_with('031'),ends_with('032'),ends_with('033'),ends_with('034'),
+                                  ends_with('035')))), na.rm=TRUE),
+          Age_q36_40 = rowSums(across(any_of(c(ends_with('036'),ends_with('037'),ends_with('038'),ends_with('039'),
+                                  ends_with('040')))), na.rm=TRUE),
+          Age_q41_45 = rowSums(across(any_of(c(ends_with('041'),ends_with('042'),ends_with('043'),ends_with('044'),
+                                  ends_with('045')))), na.rm=TRUE),
+          Age_q46_50 = rowSums(across(any_of(c(ends_with('046'),ends_with('047'),ends_with('048'),ends_with('049'),
+                                  ends_with('050')))), na.rm=TRUE),
+          Age_q51_55 = rowSums(across(any_of(c(ends_with('051'),ends_with('052'),ends_with('053'),ends_with('054'),
+                                  ends_with('055')))), na.rm=TRUE),
+          Age_q56_60 = rowSums(across(any_of(c(ends_with('056'),ends_with('057'),ends_with('058'),ends_with('059'),
+                                  ends_with('060')))), na.rm=TRUE),
+          Age_q61_65 = rowSums(across(any_of(c(ends_with('061'),ends_with('062'),ends_with('063'),ends_with('064'),
+                                  ends_with('065')))), na.rm=TRUE),
+          Age_q66_70 = rowSums(across(any_of(c(ends_with('066'),ends_with('067'),ends_with('068'),ends_with('069'),
+                                  ends_with('070')))), na.rm=TRUE),
+          Age_q71_75 = rowSums(across(any_of(c(ends_with('071'),ends_with('072'),ends_with('073'),ends_with('074'),
+                                  ends_with('075')))), na.rm=TRUE),
+          Age_q76_80 = rowSums(across(any_of(c(ends_with('076'),ends_with('077'),ends_with('078'),ends_with('079'),
+                                  ends_with('080')))), na.rm=TRUE),
+          Age_q81_85 = rowSums(across(any_of(c(ends_with('081'),ends_with('082'),ends_with('083'),ends_with('084'),
+                                  ends_with('085')))), na.rm=TRUE),
+          Age_q86_90 = rowSums(across(any_of(c(ends_with('086'),ends_with('087'),ends_with('088'),ends_with('089'),
+                                  ends_with('090')))), na.rm=TRUE),
+          Age_q91_95 = rowSums(across(any_of(c(ends_with('091'),ends_with('092'),ends_with('093'),ends_with('094'),
+                                  ends_with('095')))), na.rm=TRUE),
+          Age_q96_100 = rowSums(across(any_of(c(ends_with('096'),ends_with('097'),ends_with('098'),ends_with('099'),
+                                  ends_with('100')))), na.rm=TRUE),)|> 
+  select(CODGEO, LIBGEO, starts_with("Age_q")) |> 
+  rename_all(tolower)
+#Valeur moyenne de l'âge de la population et répartition en quartiles   
+age<- census20_pop1B%>% 
+  pivot_longer(cols=starts_with("SEXE"), names_to = "Age",values_to = "Nombre")%>%
+  mutate(sexe=substr(Age,5,5),
+         Age=as.numeric(substr(Age, 14,16)))%>%
+  group_by(CODGEO,LIBGEO,Age)%>%
+  summarise(Nombre=sum(Nombre, na.rm=TRUE))%>%
+  filter(Nombre!=0)%>%
+  group_by(CODGEO,LIBGEO)%>%
+  summarise(age_moy=weighted.mean(Age,Nombre, na.rm=TRUE),pop=sum(Nombre,na.rm=TRUE), 
+            age_q1=wtd.quantile(Age,Nombre,p=c(0.25,0.5,0.75), na.rm = TRUE )[1],
+            age_q2=wtd.quantile(Age,Nombre,p=c(0.25,0.5,0.75), na.rm = TRUE )[2],
+            age_q3=wtd.quantile(Age,Nombre,p=c(0.25,0.5,0.75), na.rm = TRUE )[3])%>%
+  rename_all(tolower)
+
 # DENSITE URBAINE ----
 # LIBDENS
 
@@ -270,6 +338,9 @@ communes <- ear20_emploi |>
   left_join(ear20_log) |> 
   left_join(ear20_immi) |> 
   left_join(ear20_natio) |> 
+  left_join(age)|>
   left_join(densite_communes)
+
+communes<- communes%>% mutate (across(c(age_moy,pop, age_q1,age_q2,age_q3), ~replace_na(.x,0)))
 
 write_csv(communes, "recensement_communes.csv")
