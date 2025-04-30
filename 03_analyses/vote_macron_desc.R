@@ -3,11 +3,10 @@
 
 ## On crée une variable pour les voix Macron en pourcentage des votes exprimés.
 
-<<<<<<< Updated upstream
 # Pour 2017 (parmi les exprimés)
 
 PresF <- PresF %>%
-=======
+
 PresF <- PresF %>%
   mutate(pourc_lepen_17 = Nb_17_Voix_Le_Pen * 100 / Nb_17_Exprimés)
 
@@ -28,7 +27,7 @@ PresF <- PresF %>%
 # Pour 2017 (parmi les exprimés)
 
 PresF <- PresF %>%
->>>>>>> Stashed changes
+
   mutate(pourc_macron_17 = Nb_17_Voix_Macron * 100 / Nb_17_Exprimés)
 
 # Pour 2017 (parmi les inscrits)
@@ -38,7 +37,7 @@ PresF <- PresF %>%
 
 # Pour 2022 (parmi les exprimés)
 
-PresF <- PresF %>%
+Pres <- Pres %>%
   mutate(pourc_macron_22 = Nb_22_Voix_Macron * 100 / Nb_22_Exprimés)
 
 # Pour 2022 (parmi les inscrits)
@@ -48,8 +47,7 @@ PresF <- PresF %>%
 
 ## On crée une variable qui calcule la différence de pourcentage entre les deux.
 
-PresF <- PresF %>% 
-<<<<<<< Updated upstream
+
   mutate(diff_pourc_macron = pourc_macron_22 - pourc_macron_17)
 
 ## Pour les inscrits.
@@ -59,13 +57,13 @@ PresF <- PresF %>%
 
 # Moyenne, médiane, quartiles de l'ensemble.
 
+
 summary(PresF$diff_pourc_macron)
 summary(PresF$diff_pourc_macron_inscr)
 
 # Moyenne, médiane, quintiles de communes rurales (dens = 7, 6 ,5)
 
-=======
-  mutate(diff_pourc_macron = (pourc_macron_22 - pourc_macron_17)/pourc_macron_17)
+mutate(diff_pourc_macron = (pourc_macron_22 - pourc_macron_17)/pourc_macron_17)
 
 PresF <- PresF %>% 
   mutate(diff_pourc_pourc_repu = (pourc_repu_22 - pourc_fillon_17)/pourc_fillon_17)
@@ -82,8 +80,13 @@ summary(PresF$diff_pourc_macron_inscr)
 
 # Moyenne, médiane, quintiles de communes rurales (dens = 7, 6 ,5)
 
->>>>>>> Stashed changes
+
 PresF %>%
+summary(Pres$diff_pourc_macron)
+
+# Moyenne, médiane, quintiles de communes rurales (dens = 7, 6 ,5)
+
+Pres %>%
   filter(dens %in% c(1, 2, 3, 4)) %>%
   summarise(
     moyenne = mean(diff_pourc_macron, na.rm = TRUE),
@@ -91,7 +94,7 @@ PresF %>%
     quartiles = list(quantile(diff_pourc_macron, na.rm = TRUE))
   )
 
-PresF %>%
+Pres %>%
   filter(dens %in% c(7, 6, 5)) %>%
   summarise(
     moyenne = mean(diff_pourc_macron, na.rm = TRUE),
@@ -99,7 +102,7 @@ PresF %>%
     quartiles = list(quantile(diff_pourc_macron, na.rm = TRUE))
   )
 
-PresF %>%
+Pres %>%
   filter(dens %in% c(7)) %>%
   summarise(
     moyenne = mean(diff_pourc_macron, na.rm = TRUE),
@@ -107,7 +110,7 @@ PresF %>%
     quartiles = list(quantile(diff_pourc_macron, na.rm = TRUE))
   )
 
-PresF %>%
+Pres %>%
   filter(dens %in% c(6)) %>%
   summarise(
     moyenne = mean(diff_pourc_macron, na.rm = TRUE),
@@ -115,7 +118,7 @@ PresF %>%
     quartiles = list(quantile(diff_pourc_macron, na.rm = TRUE))
   )
 
-PresF %>%
+Pres %>%
   filter(dens %in% c(5)) %>%
   summarise(
     moyenne = mean(diff_pourc_macron, na.rm = TRUE),
@@ -125,28 +128,27 @@ PresF %>%
 
 # Boxplot
 
-PresF %>%
+Pres %>%
   filter(dens %in% c(7, 6, 5)) %>%
   ggplot(aes(y = diff_pourc_macron)) +
   geom_boxplot()
 
 # Histogramme.
 
-PresF %>%
+Pres %>%
   filter(dens %in% c(7, 6, 5)) %>%
   ggplot(aes(x = diff_pourc_macron)) +
   geom_histogram(binwidth = 0.5, fill = "blue", color = "black")
 
 tab1 <- PresF %>% tabyl(diff_pourc_macron, libdens)
 
-<<<<<<< Updated upstream
 tableau_moyenne <- PresF %>%
   group_by(libdens) %>%
   summarise(moyenne_pourcentage = round(mean(diff_pourc_macron, na.rm = TRUE),1))
 
 tableau_moyenne <- tableau_moyenne %>% rename(Densité = libdens)
 tableau_moyenne <- tableau_moyenne %>% rename("Différence du pourcentage de votes exprimés au premier tour en faveur du candidat Macron, entre 2017 et 2022" = moyenne_pourcentage)
-=======
+
 PresF %>% 
   group_by(libdens) %>% 
   table(pourc_macron_17)
@@ -400,7 +402,6 @@ ggplot(summary_long, aes(x = libdens, y = pourcentage, fill = candidat)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 sum(PresF$Nb_22_Inscrits, na.rm = TRUE)
->>>>>>> Stashed changes
 
 
 tableau_moyenne <- tableau_moyenne[-8,]
