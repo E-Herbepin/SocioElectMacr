@@ -649,9 +649,11 @@ if(!file.exists("01_data/Présidentielles 2017-2022/Présidentielles_fusionnées
                communes[,!(names(communes) %in% c("libgeo", "codgeo"))],
                by.x="DepCom",
                by.y="DepCom",
-               all.x=TRUE)
+               all.x=TRUE) |> 
+    filter(
+      !Code_département %in% c(971,972,973,974,976,988,987,975,986)) # On enlève les départements d'outre-mer
+    
   
-
   # Nettoyage ----
   
   rm(list = c(ls(pattern = "^ear"), ls(pattern = "^census"), "densite_communes"), i,x,Date_elections_Début, Date_elections_Fin, Communes_nouvelles, Pres17T1_fusion, communes, Pres, Pres17T1, Pres22T1)
