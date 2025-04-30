@@ -341,4 +341,6 @@ communes <- ear20_emploi |>
   left_join(age)|>
   left_join(densite_communes)
 
+communes<- communes%>% mutate (across(c(age_moy,pop, age_q1,age_q2,age_q3), ~replace_na(.x,0)))
+
 write_csv(communes, "recensement_communes.csv")
