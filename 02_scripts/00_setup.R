@@ -32,9 +32,10 @@ library(ggrepel) # pour que les libellés des points ne se chevauchent pas (cruc
 library(flextable) # pour mettre en forme les tableaux
 library(gtsummary) # pour les tableaux
 
-
 library(mapsf)
+library(mapview)
 library(sf)
+library(viridis)
 #test
 
 # OPTIONS ----

@@ -127,3 +127,116 @@ ggplot(moyennes, aes(x = libdens, y = moy_pourc_macron)) +
   )
 
 ggsave("vote_macron_2017.png", width = 14, height = 8, dpi = 300, bg = "white")
+
+
+
+
+france_sf <- st_transform(france_sf, crs = 2154)
+
+france_sf <- france_sf %>%
+  left_join(PresF, by = c("com_nom" = "Libellé_commune"))
+
+# Nettoyage et conversion en numérique (si nécessaire)
+france_sf$pourc_macron_17 <- gsub(",", ".", france_sf$pourc_macron_17)
+france_sf$pourc_macron_17 <- as.numeric(france_sf$pourc_macron_17)
+
+# Suppression des lignes avec NA
+france_sf <- france_sf %>%
+  filter(!is.na(pourc_macron_17))
+
+# Création des catégories selon les intervalles spécifiés
+france_sf$macron_cat <- cut(france_sf$pourc_macron_17,
+                            breaks = c(-Inf, 20, 25, 30, Inf),
+                            labels = c("< 20%", "20-25%", "25-30%", "> 30%"),
+                            include.lowest = TRUE)
+
+# Définition d'une palette de couleurs pour la carte
+macron_palette <- c("< 20%" = "#d9d9d9",   # Gris clair pour < 20%
+                    "20-25%" = "#fee08b", # Jaune pour 20-25%
+                    "25-30%" = "#fc8d59", # Orange pour 25-30%
+                    "> 30%" = "#d7301f")  # Rouge pour > 30%
+
+# Création de la carte univariée
+mf_map(france_sf,
+       var = "macron_cat",
+       type = "typo",
+       pal = macron_palette,
+       border = "grey60",
+       lwd = 0.1,
+       leg_title = "Pourcentage Macron (%)")
+
+# Ajouter un titre à la carte
+mf_title("Carte du vote Macron (2017) par commune")
+
+# Vérification des modalités
+unique(france_sf$libdens)
+
+# Définition de la palette de couleurs pour les 7 modalités
+libdens_palette <- c(
+  "Grands centres urbains" = "#1f78b4",       # Bleu pour "Grands centres urbains"
+  "Centres urbains intermédiaires" = "#33a02c", # Vert pour "Centres urbains intermédiaires"
+  "Ceintures urbaines" = "#fb9a99",             # Rose pour "Ceintures urbaines"
+  "Petites villes" = "#ff7f00",                # Orange pour "Petites villes"
+  "Bourgs ruraux" = "#6a3d9a",                 # Violet pour "Bourgs ruraux"
+  "Rural à habitat dispersé" = "#b15928",      # Brun pour "Rural à habitat dispersé"
+  "Rural à habitat très dispersé" = "#a6cee3"   # Bleu clair pour "Rural à habitat très dispersé"
+)
+
+# Création de la carte univariée pour libdens
+mf_map(france_sf,
+       var = "libdens",
+       type = "typo",
+       pal = libdens_palette,
+       border = "grey60",
+       lwd = 0.1,
+       leg_title = "Type de densité de population")
+
+# Ajouter un titre à la carte
+mf_title("Carte de la densité de population par commune")
+
+# Choisir le format d'export
+pdf("Carte.pdf", # Emplacement et nom du fichier
+    width=7, #largeur en pouces - une page A4 fait environ 8 x 11
+    height=7 , #hauteur en pouces
+    useDingbats=FALSE)
+# Ou bien 
+# png("Carte.png", # Emplacement et nom du fichier
+#     width=7, #largeur en pouces
+#     height=7 , #hauteur en pouces
+#     res = 300) # résolution en pixels par pouce (DPI) - 300 est idéal pour imprimer
+
+
+
+# Puis on place toutes les lignes de code pour produire la carte
+# Création de la carte univariée pour libdens
+mf_map(france_sf,
+       var = "libdens",
+       type = "typo",
+       pal = libdens_palette,
+       border = "grey60",
+       lwd = 0.1,
+       leg_title = "Type de densité de population")
+
+# Ajouter un titre à la carte
+mf_title("Carte de la densité de population par commune")
+
+
+
+#On cloture le fichier crée
+
+dev.off()
+ 
+mf_map(x=france_sf, border = "white")
+
+# Carte du pourcentage de vote Macron 2017 par commune
+mf_map(france_sf,
+       var = "pourc_macron_17",
+       type = "choro",
+       breaks = c(0, 20, 25, 30, 100),  # 4 classes personnalisées
+       pal = "Blues",
+       border = "grey60",
+       leg_title = "Vote Macron 2017 (%)")
+
+mf_title("Résultats de Macron en 2017 par commune")
+
+
