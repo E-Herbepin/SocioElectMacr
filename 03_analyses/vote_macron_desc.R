@@ -2,18 +2,10 @@
 
 source("02_scripts/00_setup.R")
 source("02_scripts/01_import.R")
-<<<<<<< HEAD
-
 ## On crée une variable pour les voix Macron en pourcentage des votes exprimés.
-=======
->>>>>>> c8b489c92e34184b6478298bd1f17a093278403d
 
-
-<<<<<<< HEAD
 PresF <- PresF %>%
   mutate(pourc_macron_17 = Nb_17_Voix_Macron * 100 / Nb_17_Exprimés)
-=======
->>>>>>> c8b489c92e34184b6478298bd1f17a093278403d
 
 PresF <- PresF %>%
   mutate(
@@ -32,18 +24,13 @@ PresF <- PresF %>%
     dens = as.factor(PresF$dens)
   )
 
-<<<<<<< HEAD
 PresF <- PresF %>%
   mutate(pourc_macron_22 = Nb_22_Voix_Macron * 100 / Nb_22_Exprimés)
-=======
 # summary(PresF$diff_pourc_macron)
 # mean(PresF$diff_pourc_macron, na.rm = TRUE)
 #
 # barplot(PresF$diff_pourc_macron)
->>>>>>> c8b489c92e34184b6478298bd1f17a093278403d
 
-
-<<<<<<< HEAD
 PresF <- PresF %>% 
   mutate(diff_pourc_macron = pourc_macron_22 - pourc_macron_17)
 
@@ -127,7 +114,7 @@ PresF %>%
   group_by(decile) %>%
   summarise(moyenne = mean(diff_pourc_macron)) %>%
   mutate(CSP = "Cadres et professions intellectuelles supérieures") %>%
-  filter(decile %in% c(1:10)),
+  filter(decile %in% c(1:10))
 
 PresF %>%
   mutate(decile = as.factor(ntile(cs_ouvr_pourc, 10))) %>%
@@ -205,7 +192,6 @@ ggplot(tab, aes(x = decile, y = moyenne, group = CSP, fill = CSP, colour = CSP))
        3: La proportion de professions intermédiaires dans une commune semble peu impacter l'augmentation du vote pour Macron.") + 
   guides(colour = "none")+ 
   theme(plot.caption = element_text(hjust = 0))
-=======
 ## Répartition des communes en fonction de la différence de pourcentage de vote pour Macron entre 2017 et 2022.
 
 
@@ -276,9 +262,7 @@ PresF %>%
 names(communes)
 
 match <- Pres |>
-  right_join(communes, by = c("Libellé_commune" = "libgeo"))
-
-match <- match %>%
+  right_join(communes, by = c("Libellé_commune" = "libgeo")) %>%
   filter(!is.na(Libellé_région))
 
 match <- match %>%
@@ -369,4 +353,3 @@ tmp <- PresF %>%
   mutate(decile = as.factor(ntile(cs_agri_pourc, 10))) %>%
   group_by(decile, libdens) %>%
   summarise(moyenne = mean(cs_agri_pourc, na.rm = TRUE))
->>>>>>> c8b489c92e34184b6478298bd1f17a093278403d
