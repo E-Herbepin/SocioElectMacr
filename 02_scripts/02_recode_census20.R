@@ -247,7 +247,7 @@ ear20_immi <- census20_img1A |>
 # census20_nat1 |> 
   # names()
 
-ear20_natio <- census20_img1A |> 
+ear20_natio <- census20_nat1 |> 
   mutate(nat_fr = rowSums(across(contains("INATC1")), na.rm = TRUE),
          nat_etr = rowSums(across(contains("INATC2")), na.rm = TRUE)) |> 
   select(CODGEO, LIBGEO, starts_with("nat_")) |> 
@@ -272,3 +272,4 @@ communes <- ear20_emploi |>
   left_join(ear20_natio) |> 
   left_join(densite_communes)
 
+write_csv(communes, "recensement_communes.csv")
