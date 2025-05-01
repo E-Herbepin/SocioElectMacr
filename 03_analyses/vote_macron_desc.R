@@ -1,59 +1,78 @@
-### Premières analyses.
+#### Premières analyses.
 
+### On crée une variable pour les voix au premier tour.
 
-## On crée une variable pour les voix Macron en pourcentage des votes exprimés.
+## Macron
 
-# Pour 2017 (parmi les exprimés)
-
-PresF <- PresF %>%
-
-PresF <- PresF %>%
-  mutate(pourc_lepen_17 = Nb_17_Voix_Le_Pen * 100 / Nb_17_Exprimés)
+# Parmi les exprimés en 2017
 
 PresF <- PresF %>%
-  mutate(pourc_fillon_17 = Nb_17_Voix_Fillon * 100 / Nb_17_Exprimés)
-
-PresF <- PresF %>%
-  mutate(pourc_repu_22 = Nb_22_Voix_Pécresse * 100 / Nb_22_Exprimés)
-
-
-PresF <- PresF %>%
-  mutate(pourc_melenchon_17 = Nb_17_Voix_Mélenchon * 100 / Nb_17_Exprimés)
-
-
-PresF <- PresF %>%
-  mutate(pourc_lepen_22 = Nb_22_Voix_Le_Pen * 100 / Nb_22_Exprimés)
-
-# Pour 2017 (parmi les exprimés)
-
-PresF <- PresF %>%
-
   mutate(pourc_macron_17 = Nb_17_Voix_Macron * 100 / Nb_17_Exprimés)
 
-# Pour 2017 (parmi les inscrits)
+# Parmi les inscrits en 2017
 
 PresF <- PresF %>%
   mutate(pourc_macron_17_inscr = Nb_17_Voix_Macron * 100 / Nb_17_Inscrits)
 
-# Pour 2022 (parmi les exprimés)
+# Parmi les exprimés en 2022
 
-Pres <- Pres %>%
+PresF <- PresF %>%
   mutate(pourc_macron_22 = Nb_22_Voix_Macron * 100 / Nb_22_Exprimés)
 
-# Pour 2022 (parmi les inscrits)
+# Parmi les incrits en 2022
 
 PresF <- PresF %>%
   mutate(pourc_macron_22_inscr = Nb_22_Voix_Macron * 100 / Nb_22_Inscrits)
 
-## On crée une variable qui calcule la différence de pourcentage entre les deux.
+## Le Pen
 
+# Parmi les exprimés en 2017
 
+PresF <- PresF %>%
+  mutate(pourc_lepen_17 = Nb_17_Voix_Le_Pen * 100 / Nb_17_Exprimés)
+
+# Parmi les exprimés en 2022
+
+PresF <- PresF %>%
+  mutate(pourc_lepen_22 = Nb_22_Voix_Le_Pen * 100 / Nb_22_Exprimés)
+
+## Républicains (Fillon et Pécresse)
+
+# Parmi les exprimés en 2017
+
+PresF <- PresF %>%
+  mutate(pourc_repu_17 = Nb_17_Voix_Fillon * 100 / Nb_17_Exprimés)
+
+# Parmi les exprimés en 2022
+
+PresF <- PresF %>%
+  mutate(pourc_repu_22 = Nb_22_Voix_Pécresse * 100 / Nb_22_Exprimés)
+
+## Mélenchon
+
+# Parmi les exprimés en 2017
+
+PresF <- PresF %>%
+  mutate(pourc_melenchon_17 = Nb_17_Voix_Mélenchon * 100 / Nb_17_Exprimés)
+
+# Parmi les exprimés en 2022
+
+PresF <- PresF %>%
+  mutate(pourc_melenchon_22 = Nb_22_Voix_Mélenchon * 100 / Nb_22_Exprimés)
+
+### On crée une variable pour suivre l'évolution des voix.
+
+## Parmi les exprimés.
+
+PresF <- PresF %>%
   mutate(diff_pourc_macron = pourc_macron_22 - pourc_macron_17)
 
-## Pour les inscrits.
+## Parmi les inscrits.
 
 PresF <- PresF %>% 
   mutate(diff_pourc_macron_inscr = pourc_macron_22_inscr - pourc_macron_17_inscr)
+
+
 
 # Moyenne, médiane, quartiles de l'ensemble.
 
