@@ -2,11 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-03_analyses/europ24_descriptions_files
-03_analyses/images
-03_analyses/europ24_descriptions_cache
-03_analyses/europ24_descriptions.html
-03_analyses/europ24_descriptions.qmd
-03_analyses/europ24_vote_rn.qmd
+03_analyses/
 01_data/
-SocioElectMacr.Rproj
+*.Rproj
+recensement_communes.csv
