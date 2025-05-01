@@ -8,11 +8,7 @@ library(tidyverse) # pour la manipulation des données
 library(magrittr) # pour les pipes
 library(questionr) # pour la description des variables
 library(janitor) # pour des outils de description
-library(broom)
-library(officer)
 library(here)
-library(gtsummary)
-library(Hmisc)
 
 library(knitr)
 library(rmarkdown)
@@ -23,9 +19,8 @@ library(readxl)
 
 library(labelled)
 library(scales)
-
+library(Hmisc)
 # library(kableExtra)
-library(flextable)
 
 library(FactoMineR) # pour l'analyse géométrique des données
 library(factoextra)
