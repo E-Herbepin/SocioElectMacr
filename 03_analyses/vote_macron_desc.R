@@ -176,6 +176,47 @@ france_sf <- st_transform(france_sf, crs = 2154)
 france_sf <- france_sf %>%
   left_join(PresF, by = c("com_nom" = "Libellé_commune"))
 
+
+# Définition de la palette de couleurs pour les 7 modalités
+libdens_palette <- c(
+  "Grands centres urbains" = "#990000",       # Bleu pour "Grands centres urbains"
+  "Centres urbains intermédiaires" = "#D7301F", # Vert pour "Centres urbains intermédiaires"
+  "Ceintures urbaines" = "#F76E11",             # Rose pour "Ceintures urbaines"
+  "Petites villes" = "#FEE08B",                # Orange pour "Petites villes"
+  "Bourgs ruraux" = "#D9EF8B",                 # Violet pour "Bourgs ruraux"
+  "Rural à habitat dispersé" = "#91CF60",      # Brun pour "Rural à habitat dispersé"
+  "Rural à habitat très dispersé" = "#1A9850"   # Bleu clair pour "Rural à habitat très dispersé"
+)
+
+## Début de l'enregistrement
+
+png("densité.png", width = 12, height = 8, units = "in", res = 300)
+
+# Création de la carte univariée pour libdens
+mf_map(france_sf,
+       var = "libdens",
+       type = "typo",
+       pal = libdens_palette,
+       border = "grey60",
+       lwd = 0.1,
+       leg_pos = NA)
+
+mf_legend(type = "typo", val = c("Grands centres urbains", "Centres urbains intermédiaires", "Ceintures urbaines", "Petites villes", "Bourgs ruraux","Rural à habitat dispersé", "Rural à habitat très dispersé"), pal = libdens_palette, pos = "left", title = "Catégories de densité", size = 1.3)
+
+# Ajouter un titre à la carte
+mf_title("Carte de la densité de population par commune")
+
+# Ajouter l'échelle
+mf_scale(cex = 1)
+
+# Ajouter l'orientation
+mf_arrow(cex = 1)
+
+# Ajouter la source et autres détails
+mf_credits(txt = "Source : Insee, données du recensement 2020.\nChamp : France métropolitaine.", cex = 1)
+
+dev.off()
+
 # Préparation des données
 france_sf <- france_sf %>%
   filter(!is.na(libdens), !is.na(pourc_macron_22)) %>%
@@ -195,95 +236,8 @@ france_sf$macron_cat <- cut(france_sf$pourc_macron_17,
                             labels = c("< 20%", "20-25%", "25-30%", "> 30%"),
                             include.lowest = TRUE)
 
-# Définition d'une palette de couleurs pour la carte
-macron_palette <- c("< 20%" = "#d9d9d9",   # Gris clair pour < 20%
-                    "20-25%" = "#fee08b", # Jaune pour 20-25%
-                    "25-30%" = "#fc8d59", # Orange pour 25-30%
-                    "> 30%" = "#d7301f")  # Rouge pour > 30%
-
-# Création de la carte univariée
-mf_map(france_sf,
-       var = "macron_cat",
-       type = "typo",
-       pal = macron_palette,
-       border = "grey60",
-       lwd = 0.1,
-       leg_title = "Pourcentage Macron (%)")
-
-# Ajouter un titre à la carte
-mf_title("Carte du vote Macron (2017) par commune")
-
-# Vérification des modalités
-unique(france_sf$libdens)
-
-# Définition de la palette de couleurs pour les 7 modalités
-libdens_palette <- c(
-  "Grands centres urbains" = "#131225",       # Bleu pour "Grands centres urbains"
-  "Centres urbains intermédiaires" = "#223157", # Vert pour "Centres urbains intermédiaires"
-  "Ceintures urbaines" = "#2d4e6f",             # Rose pour "Ceintures urbaines"
-  "Petites villes" = "#167b84",                # Orange pour "Petites villes"
-  "Bourgs ruraux" = "#45aba6",                 # Violet pour "Bourgs ruraux"
-  "Rural à habitat dispersé" = "#b3cecb",      # Brun pour "Rural à habitat dispersé"
-  "Rural à habitat très dispersé" = "#ffffff"   # Bleu clair pour "Rural à habitat très dispersé"
-)
-
-# Définition de la palette de couleurs pour les 7 modalités
-libdens_palette <- c(
-  "Grands centres urbains" = "#990000",       # Bleu pour "Grands centres urbains"
-  "Centres urbains intermédiaires" = "#D7301F", # Vert pour "Centres urbains intermédiaires"
-  "Ceintures urbaines" = "#F76E11",             # Rose pour "Ceintures urbaines"
-  "Petites villes" = "#FEE08B",                # Orange pour "Petites villes"
-  "Bourgs ruraux" = "#D9EF8B",                 # Violet pour "Bourgs ruraux"
-  "Rural à habitat dispersé" = "#91CF60",      # Brun pour "Rural à habitat dispersé"
-  "Rural à habitat très dispersé" = "#1A9850"   # Bleu clair pour "Rural à habitat très dispersé"
-)
-
-# Création de la carte univariée pour libdens
-mf_map(france_sf,
-       var = "libdens",
-       type = "typo",
-       pal = libdens_palette,
-       border = "grey60",
-       lwd = 0.1,
-       leg_title = "Type de densité de population")
-
-# Ajouter un titre à la carte
-mf_title("Carte de la densité de population par commune")
-
-# Export direct en PNG avec mf_export
-mf_export(france_sf,
-          filename = "Carte.png",  # nom du fichier
-          width = 7,               # largeur en pouces
-          height = 7,              # hauteur en pouces
-          res = 300,               # résolution en dpi
-          expr = {
-            # Code de génération de la carte
-            mf_map(france_sf,
-                   var = "libdens",
-                   type = "typo",
-                   pal = libdens_palette,
-                   border = "grey60",
-                   lwd = 0.1,
-                   leg_title = "Type de densité de population")
-            
-            mf_title("Carte de la densité de population par commune")
-          })
- 
-png("densité.png", width = 1000, height = 800)
-mf_map(france_sf,
-       var = "libdens",
-       type = "typo",
-       pal = libdens_palette,
-       border = "grey60",
-       lwd=0,1,
-       leg_title = "Catégorie de densité")
-mf_title("Carte de la densité de population par commune")
-text(x = -60, y = 45, labels = "Source: Données XYZ", cex = 0.7)
-dev.off()
-
-mf_map(x=france_sf, border = "white")
-
 # Carte du pourcentage de vote Macron 2017 par commune
+png("macron_map.png", width = 1000, height = 800)
 mf_map(france_sf,
        var = "pourc_macron_17",
        type = "choro",
@@ -292,17 +246,19 @@ mf_map(france_sf,
        border = "grey60",
        leg_title = "Vote Macron 2017 (%)")
 
+mf_legend(type = "typo", val = c(""), pal = libdens_palette, pos = "left", title = "Catégories de densité", size = 1.3)
+
 mf_title("Résultats de Macron en 2017 par commune")
 
-png("macron_map.png", width = 1000, height = 800)
-par(mar = c(2, 2, 2, 2))
-mf_map(france_sf,
-       var = "pourc_macron_17",
-       type = "choro",
-       breaks = c(0, 20, 25, 30, 100),
-       pal = "Blues",
-       border = "grey60",
-       leg_title = "Vote Macron 2017 (%)")
+# Ajouter l'échelle
+mf_scale(cex = 1)
+
+# Ajouter l'orientation
+mf_arrow(cex = 1)
+
+# Ajouter la source et autres détails
+mf_credits(txt = "Source : Ministère de l'Intérieur, données du premier tour des élections présidentielles 2017", cex = 1)
+
 dev.off()
 
 ### Tests de corrélation.
@@ -420,6 +376,3 @@ rlm_model4 <- rlm(diff_pourc_macron ~ diff_pourc_ps, data = PresF)
 
 # Ajouter la droite de régression
 abline(rlm_model4, col = "red")
-
-# Sauvegarder le graphique
-dev.off()
