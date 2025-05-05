@@ -339,6 +339,7 @@ communes <- ear20_emploi |>
   left_join(ear20_immi) |> 
   left_join(ear20_natio) |> 
   left_join(age)|>
+  left_join(ear20_age)|>
   left_join(densite_communes)
 
 communes<- communes%>% mutate (across(c(age_moy,pop, age_q1,age_q2,age_q3), ~replace_na(.x,0)))
