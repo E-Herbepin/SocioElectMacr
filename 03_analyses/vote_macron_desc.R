@@ -60,17 +60,52 @@ PresF <- PresF %>%
 PresF <- PresF %>%
   mutate(pourc_melenchon_22 = Nb_22_Voix_Mélenchon * 100 / Nb_22_Exprimés)
 
-### On crée une variable pour suivre l'évolution du vote Macron.
+## Parti socialiste
 
-## Parmi les exprimés.
+# Parmi les exprimés en 2017
+
+PresF <- PresF %>% 
+  mutate(pourc_ps_17 = Nb_17_Voix_Hamon * 100 / Nb_17_Exprimés)
+
+# Parmi les exprimés en 2022
+
+PresF <- PresF %>% 
+  mutate(pourc_ps_22 = Nb_22_Voix_Hidalgo * 100 / Nb_22_Exprimés)
+
+### On crée une variable pour suivre les évolutions de vote.
+
+## Macron
+
+# Parmi les exprimés.
 
 PresF <- PresF %>%
   mutate(diff_pourc_macron = pourc_macron_22 - pourc_macron_17)
 
-## Parmi les inscrits.
+# Parmi les inscrits.
 
 PresF <- PresF %>% 
   mutate(diff_pourc_macron_inscr = pourc_macron_22_inscr - pourc_macron_17_inscr)
+
+## Républicains
+
+# Parmi les exprimés
+
+PresF <- PresF %>%
+  mutate(diff_pourc_repu = pourc_repu_22 - pourc_repu_17)
+
+## Le Pen
+
+# Parmi les exprimés
+
+PresF <- PresF %>%
+  mutate(diff_pourc_lepen = pourc_lepen_22 - pourc_lepen_17)
+
+## Parti socialiste
+
+# Parmi les exprimés
+
+PresF <- PresF %>%
+  mutate(diff_pourc_ps = pourc_ps_22 - pourc_ps_17)
 
 #### Analyses
 
@@ -267,3 +302,30 @@ mf_map(france_sf,
        leg_title = "Vote Macron 2017 (%)")
 dev.off()
 
+### Tests de corrélation.
+
+cor.test(PresF$diff_pourc_repu, PresF$diff_pourc_macron, method = "pearson")
+
+cor(PresF$diff_pourc_repu, PresF$diff_pourc_repu, method = "pearson")
+
+plot(PresF$diff_pourc_macron, PresF$diff_pourc_repu,
+     xlab = "Évolution vote Macron (%)",
+     ylab = "Évolution vote républicain (%)",
+     main = "Corrélation entre évolutions des votes Macron et Les Républicains")
+abline(lm(PresF$diff_pourc_macron ~ PresF$diff_pourc_repu), col = "blue")  # ligne de régression
+
+cor.test(PresF$diff_pourc_lepen, PresF$diff_pourc_macron, method = "pearson")
+
+plot(PresF$diff_pourc_macron, PresF$diff_pourc_lepen,
+     xlab = "Évolution vote Macron (%)",
+     ylab = "Évolution vote Le Pen (%)",
+     main = "Corrélation entre évolutions des votes Macron et Le Pen")
+abline(lm(PresF$diff_pourc_macron ~ PresF$diff_pourc_lepen), col = "blue")  # ligne de régression
+
+cor.test(PresF$diff_pourc_ps, PresF$diff_pourc_macron, method = "pearson")
+
+plot(PresF$diff_pourc_macron, PresF$diff_pourc_ps,
+     xlab = "Évolution vote Macron (%)",
+     ylab = "Évolution vote PS (%)",
+     main = "Corrélation entre évolutions des votes Macron et PS")
+abline(lm(PresF$diff_pourc_macron ~ PresF$diff_pourc_ps), col = "blue")  # ligne de régression
