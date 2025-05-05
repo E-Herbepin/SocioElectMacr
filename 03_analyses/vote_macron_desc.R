@@ -88,7 +88,7 @@ ordre_libdens <- c(
 )
 
 # Préparation des données
-PresF_clean <- PresF %>%
+france_sf <- france_sf %>%
   filter(!is.na(libdens), !is.na(pourc_macron_22)) %>%
   mutate(libdens = factor(libdens, levels = ordre_libdens))
 
@@ -173,13 +173,24 @@ unique(france_sf$libdens)
 
 # Définition de la palette de couleurs pour les 7 modalités
 libdens_palette <- c(
-  "Grands centres urbains" = "#1f78b4",       # Bleu pour "Grands centres urbains"
-  "Centres urbains intermédiaires" = "#33a02c", # Vert pour "Centres urbains intermédiaires"
-  "Ceintures urbaines" = "#fb9a99",             # Rose pour "Ceintures urbaines"
-  "Petites villes" = "#ff7f00",                # Orange pour "Petites villes"
-  "Bourgs ruraux" = "#6a3d9a",                 # Violet pour "Bourgs ruraux"
-  "Rural à habitat dispersé" = "#b15928",      # Brun pour "Rural à habitat dispersé"
-  "Rural à habitat très dispersé" = "#a6cee3"   # Bleu clair pour "Rural à habitat très dispersé"
+  "Grands centres urbains" = "#131225",       # Bleu pour "Grands centres urbains"
+  "Centres urbains intermédiaires" = "#223157", # Vert pour "Centres urbains intermédiaires"
+  "Ceintures urbaines" = "#2d4e6f",             # Rose pour "Ceintures urbaines"
+  "Petites villes" = "#167b84",                # Orange pour "Petites villes"
+  "Bourgs ruraux" = "#45aba6",                 # Violet pour "Bourgs ruraux"
+  "Rural à habitat dispersé" = "#b3cecb",      # Brun pour "Rural à habitat dispersé"
+  "Rural à habitat très dispersé" = "#ffffff"   # Bleu clair pour "Rural à habitat très dispersé"
+)
+
+# Définition de la palette de couleurs pour les 7 modalités
+libdens_palette <- c(
+  "Grands centres urbains" = "#990000",       # Bleu pour "Grands centres urbains"
+  "Centres urbains intermédiaires" = "#D7301F", # Vert pour "Centres urbains intermédiaires"
+  "Ceintures urbaines" = "#F76E11",             # Rose pour "Ceintures urbaines"
+  "Petites villes" = "#FEE08B",                # Orange pour "Petites villes"
+  "Bourgs ruraux" = "#D9EF8B",                 # Violet pour "Bourgs ruraux"
+  "Rural à habitat dispersé" = "#91CF60",      # Brun pour "Rural à habitat dispersé"
+  "Rural à habitat très dispersé" = "#1A9850"   # Bleu clair pour "Rural à habitat très dispersé"
 )
 
 # Création de la carte univariée pour libdens
@@ -194,37 +205,24 @@ mf_map(france_sf,
 # Ajouter un titre à la carte
 mf_title("Carte de la densité de population par commune")
 
-# Choisir le format d'export
-pdf("Carte.pdf", # Emplacement et nom du fichier
-    width=7, #largeur en pouces - une page A4 fait environ 8 x 11
-    height=7 , #hauteur en pouces
-    useDingbats=FALSE)
-# Ou bien 
-# png("Carte.png", # Emplacement et nom du fichier
-#     width=7, #largeur en pouces
-#     height=7 , #hauteur en pouces
-#     res = 300) # résolution en pixels par pouce (DPI) - 300 est idéal pour imprimer
-
-
-
-# Puis on place toutes les lignes de code pour produire la carte
-# Création de la carte univariée pour libdens
-mf_map(france_sf,
-       var = "libdens",
-       type = "typo",
-       pal = libdens_palette,
-       border = "grey60",
-       lwd = 0.1,
-       leg_title = "Type de densité de population")
-
-# Ajouter un titre à la carte
-mf_title("Carte de la densité de population par commune")
-
-
-
-#On cloture le fichier crée
-
-dev.off()
+# Export direct en PNG avec mf_export
+mf_export(france_sf,
+          filename = "Carte.png",  # nom du fichier
+          width = 7,               # largeur en pouces
+          height = 7,              # hauteur en pouces
+          res = 300,               # résolution en dpi
+          expr = {
+            # Code de génération de la carte
+            mf_map(france_sf,
+                   var = "libdens",
+                   type = "typo",
+                   pal = libdens_palette,
+                   border = "grey60",
+                   lwd = 0.1,
+                   leg_title = "Type de densité de population")
+            
+            mf_title("Carte de la densité de population par commune")
+          })
  
 mf_map(x=france_sf, border = "white")
 
