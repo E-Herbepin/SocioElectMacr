@@ -88,7 +88,7 @@ ordre_libdens <- c(
 )
 
 # Préparation des données
-france_sf <- france_sf %>%
+PresF_clean <- PresF %>%
   filter(!is.na(libdens), !is.na(pourc_macron_22)) %>%
   mutate(libdens = factor(libdens, levels = ordre_libdens))
 
@@ -135,6 +135,11 @@ france_sf <- st_transform(france_sf, crs = 2154)
 
 france_sf <- france_sf %>%
   left_join(PresF, by = c("com_nom" = "Libellé_commune"))
+
+# Préparation des données
+france_sf <- france_sf %>%
+  filter(!is.na(libdens), !is.na(pourc_macron_22)) %>%
+  mutate(libdens = factor(libdens, levels = ordre_libdens))
 
 # Nettoyage et conversion en numérique (si nécessaire)
 france_sf$pourc_macron_17 <- gsub(",", ".", france_sf$pourc_macron_17)
@@ -224,6 +229,17 @@ mf_export(france_sf,
             mf_title("Carte de la densité de population par commune")
           })
  
+png("densité.png", width = 1000, height = 800)
+par(mar = c(2, 2, 2, 2))
+mf_map(france_sf,
+       var = "libdens",
+       type = "typo",
+       pal = libdens_palette,
+       border = "grey60",
+       lwd=0,1,
+       leg_title = "Catégorie de densité")
+dev.off()
+
 mf_map(x=france_sf, border = "white")
 
 # Carte du pourcentage de vote Macron 2017 par commune
@@ -237,4 +253,17 @@ mf_map(france_sf,
 
 mf_title("Résultats de Macron en 2017 par commune")
 
+
+
+
+png("macron_map.png", width = 1000, height = 800)
+par(mar = c(2, 2, 2, 2))
+mf_map(france_sf,
+       var = "pourc_macron_17",
+       type = "choro",
+       breaks = c(0, 20, 25, 30, 100),
+       pal = "Blues",
+       border = "grey60",
+       leg_title = "Vote Macron 2017 (%)")
+dev.off()
 
