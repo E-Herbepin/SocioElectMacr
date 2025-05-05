@@ -107,6 +107,11 @@ PresF <- PresF %>%
 PresF <- PresF %>%
   mutate(diff_pourc_ps = pourc_ps_22 - pourc_ps_17)
 
+## Mélenchon
+
+PresF <- PresF %>%
+  mutate(diff_pourc_melenchon = pourc_melenchon_22 - pourc_melenchon_17)
+
 #### Analyses
 
 ### Histogramme du vote Macron en 2017.
@@ -265,7 +270,6 @@ mf_export(france_sf,
           })
  
 png("densité.png", width = 1000, height = 800)
-par(mar = c(2, 2, 2, 2))
 mf_map(france_sf,
        var = "libdens",
        type = "typo",
@@ -273,6 +277,8 @@ mf_map(france_sf,
        border = "grey60",
        lwd=0,1,
        leg_title = "Catégorie de densité")
+mf_title("Carte de la densité de population par commune")
+text(x = -60, y = 45, labels = "Source: Données XYZ", cex = 0.7)
 dev.off()
 
 mf_map(x=france_sf, border = "white")
@@ -287,9 +293,6 @@ mf_map(france_sf,
        leg_title = "Vote Macron 2017 (%)")
 
 mf_title("Résultats de Macron en 2017 par commune")
-
-
-
 
 png("macron_map.png", width = 1000, height = 800)
 par(mar = c(2, 2, 2, 2))
@@ -329,3 +332,94 @@ plot(PresF$diff_pourc_macron, PresF$diff_pourc_ps,
      ylab = "Évolution vote PS (%)",
      main = "Corrélation entre évolutions des votes Macron et PS")
 abline(lm(PresF$diff_pourc_macron ~ PresF$diff_pourc_ps), col = "blue")  # ligne de régression
+
+# Créer un graphique
+plot(PresF$diff_pourc_ps, PresF$diff_pourc_macron, main = "Différence de pourcentage entre Macron et PS", 
+     xlab = "Différence PS", ylab = "Différence Macron")
+
+rlm_model <- rlm(diff_pourc_ps ~ diff_pourc_macron, data = PresF)
+
+# Ajouter la droite du modèle de régression
+abline(rlm_model, col = "red")
+
+# Créer un fichier PNG de haute qualité
+png("cor_repu_macron.png", width = 12, height = 8, units = "in", res = 300)
+
+# Créer le graphique avec diff_pourc_macron et diff_pourc_repu
+plot(PresF$diff_pourc_macron, PresF$diff_pourc_repu, 
+     main = "Corrélation entre évolutions des votes Macron et Les Républicains", 
+     xlab = "Évolution Macron", 
+     ylab = "Évolution Les Républicains")
+
+# Ajuster le modèle de régression robuste
+rlm_model <- rlm(diff_pourc_repu ~ diff_pourc_macron, data = PresF)
+
+# Ajouter la droite de régression
+abline(rlm_model, col = "red")
+
+dev.off()
+
+abline(lm(PresF$diff_pourc_repu ~ PresF$diff_pourc_macron), col = "blue")  # ligne de régression
+
+
+# Créer un fichier PNG avec une haute résolution
+png("four_plots.png", width = 14, height = 8, units = "in", res = 300)
+
+# Diviser la fenêtre graphique en 2x2
+par(mfrow = c(2, 2))
+
+### Créer les 4 graphiques (identiques à l'exemple précédent)
+
+## Graph 1 Le Pen
+plot(PresF$diff_pourc_macron, PresF$diff_pourc_lepen, 
+     main = "Corrélation entre évolutions des votes Macron et Le Pen", 
+     xlab = "Évolution Macron", 
+     ylab = "Évolution Le Pen")
+
+# Ajuster le modèle de régression robuste
+rlm_model1 <- rlm(diff_pourc_macron ~ diff_pourc_lepen, data = PresF)
+
+# Ajouter la droite de régression
+abline(rlm_model1, col = "red")
+
+## Graph 2 Repu
+
+plot(PresF$diff_pourc_macron, PresF$diff_pourc_repu, 
+     main = "Corrélation entre évolutions des votes Macron et Les Républicains", 
+     xlab = "Évolution Macron", 
+     ylab = "Évolution Les Républicains")
+
+# Ajuster le modèle de régression robuste
+rlm_model2 <- rlm(diff_pourc_macron ~ diff_pourc_repu, data = PresF)
+
+# Ajouter la droite de régression
+abline(rlm_model2, col = "red")
+
+## Graph 3 Mélenchon
+
+plot(PresF$diff_pourc_macron, PresF$diff_pourc_melenchon, 
+     main = "Corrélation entre évolutions des votes Macron et Mélenchon", 
+     xlab = "Évolution Macron", 
+     ylab = "Évolution Mélenchon")
+
+# Ajuster le modèle de régression robuste
+rlm_model3 <- rlm(diff_pourc_macron ~ diff_pourc_melenchon, data = PresF)
+
+# Ajouter la droite de régression
+abline(rlm_model3, col = "red")
+
+## Graph 4 PS
+
+plot(PresF$diff_pourc_macron, PresF$diff_pourc_ps, 
+     main = "Corrélation entre évolutions des votes Macron et Les PS", 
+     xlab = "Évolution Macron", 
+     ylab = "Évolution PS")
+
+# Ajuster le modèle de régression robuste
+rlm_model4 <- rlm(diff_pourc_macron ~ diff_pourc_ps, data = PresF)
+
+# Ajouter la droite de régression
+abline(rlm_model4, col = "red")
+
+# Sauvegarder le graphique
+dev.off()
