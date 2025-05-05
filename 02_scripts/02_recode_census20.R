@@ -274,6 +274,8 @@ ear20_age <- census20_pop1B |>
                                ends_with('015')))), na.rm=TRUE),
           Age_q16_20 = rowSums(across(any_of(c(ends_with('016'),ends_with('017'),ends_with('018'),ends_with('019'),
                                   ends_with('020')))), na.rm=TRUE),
+          Age_q18_20 = rowSums(across(any_of(c(ends_with('021'),ends_with('022'),ends_with('023'),ends_with('024'),
+                                  ends_with('025')))), na.rm=TRUE),
           Age_q21_25 = rowSums(across(any_of(c(ends_with('021'),ends_with('022'),ends_with('023'),ends_with('024'),
                                   ends_with('025')))), na.rm=TRUE),
           Age_q26_30 = rowSums(across(any_of(c(ends_with('026'),ends_with('027'),ends_with('028'),ends_with('029'),
@@ -338,6 +340,7 @@ communes <- ear20_emploi |>
   left_join(ear20_log) |> 
   left_join(ear20_immi) |> 
   left_join(ear20_natio) |> 
+  left_join(ear20_age) |>
   left_join(age)|>
   left_join(densite_communes)
 

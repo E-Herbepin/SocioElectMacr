@@ -3,12 +3,13 @@
 # PACKAGES ----
 
 library(stringi)
-library(stringdist)
+library(stringdist) # pour la distance de Levenshtein (distance entre deux chaines de characteres)
 library(tidyverse) # pour la manipulation des données
-library(magrittr) # pour les pipes
+library(broom) # Dejà dans le tidyverse ?
+library(magrittr) # pour les pipes spéciaux %<>%, %T>%
 library(questionr) # pour la description des variables
 library(janitor) # pour des outils de description
-library(here)
+library(here) # Pour les chemins relatifs
 
 library(knitr)
 library(rmarkdown)
@@ -31,8 +32,8 @@ library(flextable) # pour mettre en forme les tableaux
 library(gtsummary) # pour les tableaux
 
 
+library(sf) #Pour les maps
 library(mapsf)
-library(sf)
 #test
 
 # OPTIONS ----
