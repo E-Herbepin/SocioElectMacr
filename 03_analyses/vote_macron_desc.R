@@ -243,12 +243,12 @@ france_sf$macron_cat <- cut(france_sf$pourc_macron_17,
 # Carte du pourcentage de vote Macron 2017 par commune
 png("macron_map.png", width = 12, height = 8, units = "in", res = 300)
 
-mf_map(france_sf,
+mf_map(comsf,
        var = "pourc_macron_17",
        type = "choro",
        breaks = c(100, 30, 25, 20, 0),  # 4 classes personnalisées
        pal = "Blues",
-       border = "grey60",
+       border = NA,
        leg_title = "Vote Macron 2017 (%)",
        leg_pos = NA
 )
@@ -271,7 +271,7 @@ dev.off()
 ### Carte densité rural seulement
 
 # Filtrer les données pour ne conserver que les modalités spécifiées
-france_sf_filtered <- france_sf[france_sf$libdens %in% c("Bourgs ruraux", "Rural à habitat dispersé", "Rural à habitat très dispersé"), ]
+comsf_filtered <- comsf[comsf$libdens %in% c("Bourgs ruraux", "Rural à habitat dispersé", "Rural à habitat très dispersé"), ]
 
 # Définition de la palette de couleurs pour les 3 modalités
 libdens_palette3 <- c(
@@ -283,7 +283,7 @@ libdens_palette3 <- c(
 png("macron_map_ruronly.png", width = 12, height = 8, units = "in", res = 300)
 
 # Création de la carte univariée pour libdens, en ne montrant que les catégories filtrées
-mf_map(france_sf_filtered,
+mf_map(comsf_filtered,
        var = "libdens",
        type = "typo",
        pal = libdens_palette3,
@@ -465,3 +465,30 @@ plot(rural_data$diff_pourc_macron, rural_data$diff_pourc_repu,
 
 abline(lm(diff_pourc_repu ~ diff_pourc_macron, data = rural_data), col = "blue")
 
+# Création de la carte univariée pour libdens
+mf_map(comsf,
+       var = "libdens",
+       type = "typo",
+       pal = libdens_palette,
+       border = "grey60",
+       lwd = 0.1,
+       leg_pos = NA)
+
+mf_legend(type = "typo", val = c("Grands centres urbains", "Centres urbains intermédiaires", "Ceintures urbaines", "Petites villes", "Bourgs ruraux","Rural à habitat dispersé", "Rural à habitat très dispersé"), pal = libdens_palette, pos = "left", title = "Catégories de densité", size = 1.3)
+
+comsf <- comsf[st_geometry_type(comsf) %in% c("POLYGON", "MULTIPOLYGON"), ]  # On filtre les types valides
+comsf <- st_cast(comsf, "MULTIPOLYGON")  # On convertit tout en MULTIPOLYGON
+
+
+png("densité.png", width = 12, height = 8, units = "in", res = 300)
+
+# Création de la carte univariée pour libdens
+mf_map(france_sf,
+       var = "libdens",
+       type = "typo",
+       pal = pal_cereq,
+       border = "grey60",
+       lwd = 0.1,
+       leg_pos = "left")
+
+dev.off()
