@@ -168,14 +168,16 @@ ggplot(moyennes, aes(x = libdens, y = moy_pourc_macron)) +
 
 ggsave("vote_macron_2017.png", width = 14, height = 8, dpi = 300, bg = "white")
 
+#### Cartes
 
-
+### Préparation de la base de données.
 
 france_sf <- st_transform(france_sf, crs = 2154)
 
 france_sf <- france_sf %>%
   left_join(PresF, by = c("com_nom" = "Libellé_commune"))
 
+### Carte densité
 
 # Définition de la palette de couleurs pour les 7 modalités
 libdens_palette <- c(
@@ -217,6 +219,8 @@ mf_credits(txt = "Source : Insee, données du recensement 2020.\nChamp : France 
 
 dev.off()
 
+### Carte vote Macron
+
 # Préparation des données
 france_sf <- france_sf %>%
   filter(!is.na(libdens), !is.na(pourc_macron_22)) %>%
@@ -229,41 +233,6 @@ france_sf$pourc_macron_17 <- as.numeric(france_sf$pourc_macron_17)
 # Suppression des lignes avec NA
 france_sf <- france_sf %>%
   filter(!is.na(pourc_macron_17))
-
-# Création des catégories selon les intervalles spécifiés
-france_sf$macron_cat <- cut(france_sf$pourc_macron_17,
-                            breaks = c(-Inf, 20, 25, 30, Inf),
-                            labels = c("< 20%", "20-25%", "25-30%", "> 30%"),
-                            include.lowest = TRUE)
-
-# Carte du pourcentage de vote Macron 2017 par commune
-png("macron_map.png", width = 12, height = 8, units = "in", res = 300)
-
-mf_map(france_sf,
-       var = "pourc_macron_17",
-       type = "choro",
-       breaks = c(100, 30, 25, 20, 0),  # 4 classes personnalisées
-       pal = "Blues",
-       border = "grey60",
-       leg_title = "Vote Macron 2017 (%)",
-       leg_pos = NA
-       )
-
-mf_legend(type = "typo", val = c("> 30 %", "25 à 30 %", "20 à 25 %", "< 20 %"), pal = "Blues", pos = "left", title = "Pourcentage de vote Macron parmi\nles voix exprimées au premier tour", size = 1.3)
-
-mf_title("Résultats de Macron en 2017 par commune")
-
-# Ajouter l'échelle
-mf_scale(cex = 1)
-
-# Ajouter l'orientation
-mf_arrow(cex = 1)
-
-# Ajouter la source et autres détails
-mf_credits(txt = "Source : Ministère de l'Intérieur, données du premier tour des élections présidentielles 2017", cex = 1)
-
-dev.off()
-
 
 # Création des catégories selon les intervalles spécifiés
 france_sf$macron_cat <- cut(france_sf$pourc_macron_17,
@@ -298,7 +267,49 @@ mf_arrow(cex = 1)
 mf_credits(txt = "Source : Ministère de l'Intérieur, données du premier tour des élections présidentielles 2017.\nChamp : France métropolitaine.", cex = 1)
 
 dev.off()
-### Tests de corrélation.
+
+### Carte densité rural seulement
+
+# Filtrer les données pour ne conserver que les modalités spécifiées
+france_sf_filtered <- france_sf[france_sf$libdens %in% c("Bourgs ruraux", "Rural à habitat dispersé", "Rural à habitat très dispersé"), ]
+
+# Définition de la palette de couleurs pour les 3 modalités
+libdens_palette3 <- c(
+  "Bourgs ruraux" = "#D9EF8B",                 # Violet pour "Bourgs ruraux"
+  "Rural à habitat dispersé" = "#91CF60",      # Brun pour "Rural à habitat dispersé"
+  "Rural à habitat très dispersé" = "#1A9850"   # Bleu clair pour "Rural à habitat très dispersé"
+)
+
+png("macron_map_ruronly.png", width = 12, height = 8, units = "in", res = 300)
+
+# Création de la carte univariée pour libdens, en ne montrant que les catégories filtrées
+mf_map(france_sf_filtered,
+       var = "libdens",
+       type = "typo",
+       pal = libdens_palette3,
+       border = "grey60",
+       lwd = 0.1,
+       leg_pos = NA)
+
+# Mise à jour de la légende en fonction des catégories filtrées
+mf_legend(type = "typo", val = c("Bourgs ruraux", "Rural à habitat dispersé", "Rural à habitat très dispersé"), 
+          pal = libdens_palette3, pos = "left", title = "Catégories de densité", size = 1.3)
+
+# Ajouter un titre à la carte
+mf_title("Carte de la densité de population (Catégories rurales)")
+
+# Ajouter l'échelle
+mf_scale(cex = 1)
+
+# Ajouter l'orientation
+mf_arrow(cex = 1)
+
+# Ajouter la source et autres détails
+mf_credits(txt = "Source : Insee, données du recensement 2020.\nChamp : France métropolitaine.", cex = 1)
+
+dev.off()
+
+#### Tests de corrélation.
 
 cor.test(PresF$diff_pourc_repu, PresF$diff_pourc_macron, method = "pearson")
 
@@ -417,43 +428,13 @@ abline(rlm_model4, col = "red")
 
 dev.off()
 
+#### Corrélation Macron / Le Pen différence rural urbain.
 
 
-# Filtrer les données pour ne conserver que les modalités spécifiées
-france_sf_filtered <- france_sf[france_sf$libdens %in% c("Bourgs ruraux", "Rural à habitat dispersé", "Rural à habitat très dispersé"), ]
+cor.test(PresF$diff_pourc_repu, PresF$diff_pourc_macron, method = "pearson")
 
-# Définition de la palette de couleurs pour les 3 modalités
-libdens_palette3 <- c(
-  "Bourgs ruraux" = "#D9EF8B",                 # Violet pour "Bourgs ruraux"
-  "Rural à habitat dispersé" = "#91CF60",      # Brun pour "Rural à habitat dispersé"
-  "Rural à habitat très dispersé" = "#1A9850"   # Bleu clair pour "Rural à habitat très dispersé"
-)
-
-png("macron_map_ruronly.png", width = 12, height = 8, units = "in", res = 300)
-
-# Création de la carte univariée pour libdens, en ne montrant que les catégories filtrées
-mf_map(france_sf_filtered,
-       var = "libdens",
-       type = "typo",
-       pal = libdens_palette3,
-       border = "grey60",
-       lwd = 0.1,
-       leg_pos = NA)
-
-# Mise à jour de la légende en fonction des catégories filtrées
-mf_legend(type = "typo", val = c("Bourgs ruraux", "Rural à habitat dispersé", "Rural à habitat très dispersé"), 
-          pal = libdens_palette3, pos = "left", title = "Catégories de densité", size = 1.3)
-
-# Ajouter un titre à la carte
-mf_title("Carte de la densité de population (Catégories rurales)")
-
-# Ajouter l'échelle
-mf_scale(cex = 1)
-
-# Ajouter l'orientation
-mf_arrow(cex = 1)
-
-# Ajouter la source et autres détails
-mf_credits(txt = "Source : Insee, données du recensement 2020.\nChamp : France métropolitaine.", cex = 1)
-
-dev.off()
+plot(PresF$diff_pourc_macron, PresF$diff_pourc_repu,
+     xlab = "Évolution vote Macron (%)",
+     ylab = "Évolution vote républicain (%)",
+     main = "Corrélation entre évolutions des votes Macron et Les Républicains")
+abline(lm(PresF$diff_pourc_macron ~ PresF$diff_pourc_repu), col = "blue")  # ligne de régression
