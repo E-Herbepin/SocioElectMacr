@@ -433,8 +433,35 @@ dev.off()
 
 cor.test(PresF$diff_pourc_repu, PresF$diff_pourc_macron, method = "pearson")
 
+cor.test(rural_data$diff_pourc_repu, rural_data$diff_pourc_macron, method = "pearson")
+
+cor.test(PresF$diff_pourc_lepen, PresF$diff_pourc_macron, method = "pearson")
+
+cor.test(rural_data$diff_pourc_lepen, rural_data$diff_pourc_macron, method = "pearson")
+
+cor.test(PresF$diff_pourc_ps, PresF$diff_pourc_macron, method = "pearson")
+
+cor.test(rural_data$diff_pourc_ps, rural_data$diff_pourc_macron, method = "pearson")
+
 plot(PresF$diff_pourc_macron, PresF$diff_pourc_repu,
      xlab = "Évolution vote Macron (%)",
      ylab = "Évolution vote républicain (%)",
      main = "Corrélation entre évolutions des votes Macron et Les Républicains")
 abline(lm(PresF$diff_pourc_macron ~ PresF$diff_pourc_repu), col = "blue")  # ligne de régression
+
+# Filtrer uniquement les communes rurales selon les modalités de "libdens"
+rural_data <- subset(PresF, libdens %in% c("Bourgs ruraux", 
+                                           "Rural à habitat dispersé", 
+                                           "Rural à habitat très dispersé"))
+
+# Test de corrélation
+cor.test(rural_data$diff_pourc_repu, rural_data$diff_pourc_macron, method = "pearson")
+
+# Graphique de la corrélation avec ligne de régression
+plot(rural_data$diff_pourc_macron, rural_data$diff_pourc_repu,
+     xlab = "Évolution vote Macron (%)",
+     ylab = "Évolution vote républicain (%)",
+     main = "Corrélation entre évolutions des votes Macron et Les Républicains (zones rurales)")
+
+abline(lm(diff_pourc_repu ~ diff_pourc_macron, data = rural_data), col = "blue")
+
