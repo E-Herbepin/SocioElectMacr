@@ -1,0 +1,193 @@
+###############################################
+#### Analyse des correspondances multiples ####
+###############################################
+
+# Importer les packages n?cessaires
+library(FactoMineR)
+library(Factoshiny)
+library(explor)
+
+# Pour la stat descriptive
+library(questionr)
+## Pour le recodage
+library(tidyverse)
+
+# On prend uniquement les communes de la base PresF qui sont dans les catgéories 5-6-7 (communes rurales)
+
+PresFrural <- PresF %>% filter(dens >= 5 & dens <= 7)
+
+colnames(PresFrural)
+
+####################################################
+
+#### Preparation des donnees
+
+#  il faut transformer les variables numeriques en variables categorielles.
+
+######################################################"
+### faire des quartiles avec toutes les variables d'emploi, de logement, d'âge et nationalité
+
+PresFrural <- PresFrural %>%
+    mutate(
+      #pour l'emploi
+      cs_cpis_pourc =
+           100 * cs_cpis_n / cs_tot,
+         empl_precaire_quartile =
+           quant.cut(empl_precaire_pourc, 4,
+                     labels = c("Precaire Q1",
+                                "Precaire Q2",
+                                "Precaire Q3",
+                                "Precaire Q4")),
+         empl_employeurs_quartile =
+           quant.cut(empl_employeurs_pourc, 4,
+                     labels = c("Employeurs Q1",
+                                "Employeurs Q2",
+                                "Employeurs Q3",
+                                "Employeurs Q4")),
+         empl_stable_quartile =
+           quant.cut(empl_stable_pourc, 4,
+                     labels = c("Stable Q1",
+                                "Stable Q2",
+                                "Stable Q3",
+                                "Stable Q4")),
+         empl_indep_pourc =
+           100 * empl_indep_n / empl_tot,
+         empl_indep_quartile =
+           quant.cut(empl_indep_pourc, 4,
+                     labels = c("Independant Q1",
+                                "Independant Q2",
+                                "Independant Q3",
+                                "Independant Q4")),
+      empl_indep_quartile =
+        quant.cut(empl_indep_pourc, 4,
+                  labels = c("Independant Q1",
+                             "Independant Q2",
+                             "Independant Q3",
+                             "Independant Q4")),
+    
+         #pour le logement
+      log_vacants_quartile =
+        quant.cut(log_vacants_pourc, 4,
+                  labels = c("Logement vacant Q1",
+                             "Logement vacant Q2",
+                             "Logement vacant Q3",
+                             "Logement vacant Q4")),
+      log_resprinc_pourc = 100 * log_resprinc / (log_resprinc +
+                                   log_logoccas +
+                                   log_ressecond),
+      log_resprinc_quartile =
+        quant.cut(log_resprinc_pourc, 4,
+                  labels = c("Résidence principale Q1",
+                             "Résidence principale Q2",
+                             "Résidence principale Q3",
+                             "Résidence principale Q4")),
+      log_ressecond_pourc =
+           100 * log_ressecond / (log_resprinc +
+                           log_logoccas +
+                           log_ressecond),
+      log_ressecond_quartile =
+             quant.cut(log_ressecond_pourc, 4,
+            labels = c("Résidence secondaire Q1",
+                       "Résidence secondaire Q2",
+                       "Résidence secondaire Q3",
+                       "Résidence secondaire Q4")),
+      
+#pour les nationalités
+           
+        nat_etr_pourc =
+            100 * nat_etr / (nat_etr + nat_fr),
+        nat_etr_quartile =
+            quant.cut(nat_etr_pourc, 4,
+            labels = c("Etranger Q1",
+                       "Etranger Q2",
+                       "Etranger Q3",
+                       "Etranger Q4"))) 
+
+
+PresFrural <- PresFrural %>%
+  mutate(
+    cs_agri_quartile = case_when(
+      cs_agri_pourc == 0 ~ "Agriculteurs Q0",
+      length(unique(cs_agri_pourc[cs_agri_pourc > 0])) < 4 ~ NA_character_,
+      TRUE ~ as.character(cut(cs_agri_pourc,
+                              breaks = quantile(cs_agri_pourc[cs_agri_pourc > 0], probs = seq(0, 1, length.out = 5), na.rm = TRUE),
+                              include.lowest = TRUE,
+                              labels = c("Agriculteurs Q1", "Agriculteurs Q2", "Agriculteurs Q3", "Agriculteurs Q4")))
+    )
+  )
+
+PresFrural$cs_agri_pourc
+################################################
+#### Mise en oeuvre de l'ACM
+
+## Commencer par une ACM avec uniquement les variables actives :
+
+
+var_active <- PresFrural %>% select(
+  #emploi
+  empl_precaire_quartile,
+  empl_stable_quartile,
+  empl_indep_quartile,
+  empl_employeurs_quartile,
+  cs_empl_quartile,
+  cs_ouvr_quartile,
+  cs_agri_quartile,
+  
+  #logement
+  log_vacants_quartile,
+  log_resprinc_quartile,
+  
+  
+  #nationalite
+  nat_etr_quartile)
+
+View(var_active)
+
+# Commande de mise en oeuvre de l'ACM
+# (base avec uniquement les variables actives)
+
+res_ACM <- MCA(var_active, graph =F)
+explor(res_ACM)
+
+
+#Interpr?tation: regarder les % d'inertie
+#on peut obtenir les taux modifi?s gr?ce au package GDAtools
+#install.packages("GDAtools")
+library(GDAtools)
+
+#avec la fonction  modif.rates
+modif.rate(res_ACM)
+
+
+##########
+# Ajout des elements supplementaires dans l'analyse
+
+## On ajoute les variables sur le vote macron
+
+##############################################"
+## Nouvelle base avec ajout des variables suppl?mentaires sur le vote macron :
+
+
+# PREMIERE ETAPE : on cree une base de donnees contenant les variables illustratives 
+var_illustrative <- select(PresFrural,"Nb_22_Voix_Macron", "Nb_17_Voix_Macron", "Nb_22_Abstentions")
+
+
+
+# DEUXIEME ETAPE : on fusionne la base des variables actives et illustratives
+## NB : on n'a pas modifie l'ordre des lignes apres la creation de var_actives et var_illustratives,
+# donc on peut fusionner les deux bases sans risque
+
+#Attention, on reprnd bien la bse avec NA imput?es.
+
+baseACM <- cbind.data.frame(var_active,var_illustrative)
+View(baseACM)
+
+## Exportation de la base complete et propre
+#write.csv(baseACM,"baseACM.csv")
+
+# Commande de mise en oeuvre de l'ACM
+# (base complete)
+colnames(baseACM)
+res_ACM3 <- MCA(baseACM, graph=F)
+
+explor(res_ACM3)
