@@ -128,18 +128,18 @@ ordre_libdens <- c(
 )
 
 # Préparation des données
-PresF_clean <- PresF %>%
+PresF <- PresF %>%
   filter(!is.na(libdens), !is.na(pourc_macron_22)) %>%
   mutate(libdens = factor(libdens, levels = ordre_libdens))
 
 # Moyenne par densité
-moyennes <- PresF_clean %>%
+moyennes <- PresF %>%
   group_by(libdens) %>%
   summarise(moy_pourc_macron = mean(pourc_macron_22, na.rm = TRUE)) %>%
   mutate(vjust_label = ifelse(libdens == "Rural à habitat très dispersé", -0.8, -1.2))
 
 # Moyenne globale
-moyenne_globale <- mean(PresF_clean$pourc_macron_22, na.rm = TRUE)
+moyenne_globale <- mean(PresF$pourc_macron_22, na.rm = TRUE)
 
 # Valeur max pour ajuster l'échelle
 val_max <- max(moyennes$moy_pourc_macron)
@@ -195,11 +195,11 @@ libdens_palette <- c(
 png("densité.png", width = 12, height = 8, units = "in", res = 300)
 
 # Création de la carte univariée pour libdens
-mf_map(france_sf,
+mf_map(comsf,
        var = "libdens",
        type = "typo",
        pal = libdens_palette,
-       border = "grey60",
+       border = "NA",
        lwd = 0.1,
        leg_pos = NA)
 
@@ -492,3 +492,32 @@ mf_map(france_sf,
        leg_pos = "left")
 
 dev.off()
+
+
+# charger la géométrie avec sf
+comsf <- st_read(dsn = "01_data//geoloc/geometry/COMMUNE.shp", 
+                 stringsAsFactors = F)
+
+# Simplifier pour que le code aille plus vite 
+comsf<- st_simplify(comsf, dTolerance = 1000)
+
+
+comsf <- comsf %>% rename(DepCom = INSEE_COM)
+
+
+
+# interroger le système de coordoonées 
+st_crs(comsf)
+
+# projeter le fond de carte dans le référentiel Lambert93 (adapté pour la France)
+comsf <- st_transform(comsf, crs = 2154)
+
+# joindre les données attributaires
+comsf <- left_join(PresF, comsf, by = "DepCom")
+
+
+comsf<-st_sf(comsf)
+
+
+comsf <- comsf[st_geometry_type(comsf) %in% c("POLYGON", "MULTIPOLYGON"), ]  # On filtre les types valides
+comsf <- st_cast(comsf, "MULTIPOLYGON")  # On convertit tout en MULTIPOLYGON
