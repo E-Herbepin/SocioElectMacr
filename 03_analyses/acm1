@@ -16,7 +16,6 @@ library(tidyverse)
 
 PresFrural <- PresF %>% filter(dens >= 5 & dens <= 7)
 
-colnames(PresFrural)
 
 ####################################################
 
@@ -28,80 +27,82 @@ colnames(PresFrural)
 ### faire des quartiles avec toutes les variables d'emploi, de logement, d'âge et nationalité
 
 PresFrural <- PresFrural %>%
-    mutate(
-      #pour l'emploi
-      cs_cpis_pourc =
-           100 * cs_cpis_n / cs_tot,
-         empl_precaire_quartile =
-           quant.cut(empl_precaire_pourc, 4,
-                     labels = c("Precaire Q1",
-                                "Precaire Q2",
-                                "Precaire Q3",
-                                "Precaire Q4")),
-         empl_employeurs_quartile =
-           quant.cut(empl_employeurs_pourc, 4,
-                     labels = c("Employeurs Q1",
-                                "Employeurs Q2",
-                                "Employeurs Q3",
-                                "Employeurs Q4")),
-         empl_stable_quartile =
-           quant.cut(empl_stable_pourc, 4,
-                     labels = c("Stable Q1",
-                                "Stable Q2",
-                                "Stable Q3",
-                                "Stable Q4")),
-         empl_indep_pourc =
-           100 * empl_indep_n / empl_tot,
-         empl_indep_quartile =
-           quant.cut(empl_indep_pourc, 4,
-                     labels = c("Independant Q1",
-                                "Independant Q2",
-                                "Independant Q3",
-                                "Independant Q4")),
-      empl_indep_quartile =
-        quant.cut(empl_indep_pourc, 4,
-                  labels = c("Independant Q1",
-                             "Independant Q2",
-                             "Independant Q3",
-                             "Independant Q4")),
+  mutate(
+    #pour l'emploi
+    cs_cpis_pourc =
+      100 * cs_cpis_n / cs_tot,
+    empl_precaire_quartile =
+      quant.cut(empl_precaire_pourc, 4,
+                labels = c("Precaire Q1",
+                           "Precaire Q2",
+                           "Precaire Q3",
+                           "Precaire Q4")),
+    empl_employeurs_quartile =
+      quant.cut(empl_employeurs_pourc, 4,
+                labels = c("Employeurs Q1",
+                           "Employeurs Q2",
+                           "Employeurs Q3",
+                           "Employeurs Q4")),
+    empl_stable_quartile =
+      quant.cut(empl_stable_pourc, 4,
+                labels = c("Stable Q1",
+                           "Stable Q2",
+                           "Stable Q3",
+                           "Stable Q4")),
+    empl_indep_pourc =
+      100 * empl_indep_n / empl_tot,
+    empl_indep_quartile =
+      quant.cut(empl_indep_pourc, 4,
+                labels = c("Independant Q1",
+                           "Independant Q2",
+                           "Independant Q3",
+                           "Independant Q4")),
+    empl_indep_quartile =
+      quant.cut(empl_indep_pourc, 4,
+                labels = c("Independant Q1",
+                           "Independant Q2",
+                           "Independant Q3",
+                           "Independant Q4")),
     
-         #pour le logement
-      log_vacants_quartile =
-        quant.cut(log_vacants_pourc, 4,
-                  labels = c("Logement vacant Q1",
-                             "Logement vacant Q2",
-                             "Logement vacant Q3",
-                             "Logement vacant Q4")),
-      log_resprinc_pourc = 100 * log_resprinc / (log_resprinc +
-                                   log_logoccas +
-                                   log_ressecond),
-      log_resprinc_quartile =
-        quant.cut(log_resprinc_pourc, 4,
-                  labels = c("Résidence principale Q1",
-                             "Résidence principale Q2",
-                             "Résidence principale Q3",
-                             "Résidence principale Q4")),
-      log_ressecond_pourc =
-           100 * log_ressecond / (log_resprinc +
-                           log_logoccas +
-                           log_ressecond),
-      log_ressecond_quartile =
-             quant.cut(log_ressecond_pourc, 4,
-            labels = c("Résidence secondaire Q1",
-                       "Résidence secondaire Q2",
-                       "Résidence secondaire Q3",
-                       "Résidence secondaire Q4")),
-      
-#pour les nationalités
-           
-        nat_etr_pourc =
-            100 * nat_etr / (nat_etr + nat_fr),
-        nat_etr_quartile =
-            quant.cut(nat_etr_pourc, 4,
-            labels = c("Etranger Q1",
-                       "Etranger Q2",
-                       "Etranger Q3",
-                       "Etranger Q4"))) 
+    #pour le logement
+    log_vacants_quartile =
+      quant.cut(log_vacants_pourc, 4,
+                labels = c("Logement vacant Q1",
+                           "Logement vacant Q2",
+                           "Logement vacant Q3",
+                           "Logement vacant Q4")),
+    log_resprinc_pourc = 100 * log_resprinc / (log_resprinc +
+                                                 log_logoccas +
+                                                 log_ressecond),
+    log_resprinc_quartile =
+      quant.cut(log_resprinc_pourc, 4,
+                labels = c("Résidence principale Q1",
+                           "Résidence principale Q2",
+                           "Résidence principale Q3",
+                           "Résidence principale Q4")),
+    log_ressecond_pourc =
+      100 * log_ressecond / (log_resprinc +
+                               log_logoccas +
+                               log_ressecond),
+    log_ressecond_quartile =
+      quant.cut(log_ressecond_pourc, 4,
+                labels = c("Résidence secondaire Q1",
+                           "Résidence secondaire Q2",
+                           "Résidence secondaire Q3",
+                           "Résidence secondaire Q4")),
+    
+    #pour les nationalités
+    
+    nat_etr_pourc =
+      100 * nat_etr / (nat_etr + nat_fr),
+    nat_etr_quartile =
+      quant.cut(nat_etr_pourc, 4,
+                labels = c("Etranger Q1",
+                           "Etranger Q2",
+                           "Etranger Q3",
+                           "Etranger Q4"))) 
+#pour l'age deja fait 
+
 
 
 PresFrural <- PresFrural %>%
@@ -116,7 +117,7 @@ PresFrural <- PresFrural %>%
     )
   )
 
-PresFrural$cs_agri_pourc
+
 ################################################
 #### Mise en oeuvre de l'ACM
 
@@ -139,7 +140,12 @@ var_active <- PresFrural %>% select(
   
   
   #nationalite
-  nat_etr_quartile)
+  nat_etr_quartile,
+  
+  #age
+  age_q1,
+  age_q2,
+  age_q3)
 
 View(var_active)
 
@@ -169,7 +175,7 @@ modif.rate(res_ACM)
 
 
 # PREMIERE ETAPE : on cree une base de donnees contenant les variables illustratives 
-var_illustrative <- select(PresFrural,"Nb_22_Voix_Macron", "Nb_17_Voix_Macron", "Nb_22_Abstentions")
+var_illustrative1 <- select(PresFrural, "Nb_17_Voix_Macron", "Nb_17_Inscrits" "Nb_"Nb_22_Abstentions")
 
 
 
@@ -177,9 +183,9 @@ var_illustrative <- select(PresFrural,"Nb_22_Voix_Macron", "Nb_17_Voix_Macron", 
 ## NB : on n'a pas modifie l'ordre des lignes apres la creation de var_actives et var_illustratives,
 # donc on peut fusionner les deux bases sans risque
 
-#Attention, on reprnd bien la bse avec NA imput?es.
 
-baseACM <- cbind.data.frame(var_active,var_illustrative)
+
+baseACM <- cbind.data.frame(var_active,var_illustrative1)
 View(baseACM)
 
 ## Exportation de la base complete et propre
@@ -191,3 +197,139 @@ colnames(baseACM)
 res_ACM3 <- MCA(baseACM, graph=F)
 
 explor(res_ACM3)
+#bug?
+###############################################
+#### Classification ascendante hi?rarchique (CAH)  ####
+###############################################
+
+##1. Construire la classification
+#on va cat?goriser nos communes en fonction des variables actives de l'ACM
+
+#on applique la fonction HCPC au r?sultat de l'ACM
+#la classification utilise alors les variables actives.
+
+HCPC(res_ACM)
+
+
+#pour conna?tre les effectifs et % de chaque cluster
+freq(hcpc$data.clust$clust)
+#fonctionne pas sur mon pc ? faire echantillon
+
+PresFrural_sample <- PresFrural %>% sample_n(5000)
+var_active_sample <- PresFrural_sample %>% select(
+  #emploi
+  empl_precaire_quartile,
+  empl_stable_quartile,
+  empl_indep_quartile,
+  empl_employeurs_quartile,
+  cs_empl_quartile,
+  cs_ouvr_quartile,
+  cs_agri_quartile,
+  
+  #logement
+  log_vacants_quartile,
+  log_resprinc_quartile,
+  
+  
+  #nationalite
+  nat_etr_quartile,
+  #age
+  age_q1,
+  age_q2,
+  age_q3)
+
+res_ACM_sample <- MCA(var_active_sample, graph =F)
+var_illustrative <- select(PresFrural_sample, "Nb_17_Voix_Macron", "Nb_17_Inscrits" "Nb_"Nb_17_Abstentions")
+
+baseACM_sample <- cbind.data.frame(var_active_sample,var_illustrative)
+
+HCPC(res_ACM_sample)
+
+#on regarde les clusters
+hcpc <- HCPC(res_ACM_sample)
+plot(hcpc)
+freq(hcpc$data.clust$clust)
+#on a que 2 classes... pas terrible ? je suis pas convaincue de si c'est pertinent à garder, donc à voir
+
+#pour croiser la variable class3 avec chaque variable utilis?e, j'ai pas tout fait parce que pas sûr que ce soit pertinent
+lprop(table(PresFrural$class3, PresFrural$emp_precaire_quartile))
+
+
+#le mieux est de l'enregistrer sous le format excel dans un dossier de votre choix.
+setwd("C:/Users/nehil/OneDrive/Documents/PDI")
+
+write.infile(hcpc_3$desc.var, "hcpc3_evs.csv")
+#dans un m?moire ou un article, pr?senter une version mise en forme et simplifi?e de ce tableau.
+
+
+#apr?s avoir interpr?t? les classes, on les renomme:
+## Recodage de EVS$class3
+EVS$class3 <- fct_recode(EVS$class3,
+                         "La gauche" = "1",
+                         "Les socio-d?mocrates" = "2",
+                         "La droite" = "3"
+)
+freq(EVS$class3)
+
+
+####### Deuxième ACM
+
+colnames(PresFrural)
+#creer des variables pour montrer évolution vote macron entre 2017 et 2022
+
+PresFrural <- PresFrural %>%
+  mutate(
+    Evol_nb_inscrits = Nb_22_Inscrits -  Nb_17_Inscrits,
+    Evol_nb_abstentions = Nb_22_Abstentions - Nb_17_Abstentions,
+    Evol_nb_Macron = Nb_22_Voix_Macron - Nb_17_Voix_Macron
+  )
+#problème : on a des variables continues et pas catégorielles
+#on peut faire une acp 
+res_ACP <- PCA(var_active2, scale.unit = TRUE, graph = FALSE)
+explor(res_ACP)
+#rajoute variables illustratives 
+vars_illustratives_acp <- PresFrural %>%
+  select(
+    empl_precaire_quartile,
+    empl_stable_quartile,
+    empl_indep_quartile,
+    empl_employeurs_quartile,
+    cs_empl_quartile,
+    cs_ouvr_quartile,
+    cs_agri_quartile,
+    log_vacants_quartile,
+    log_resprinc_quartile,
+    nat_etr_quartile
+  )
+donnees_acp <- bind_cols(var_active2, vars_illustratives_acp)
+res_PCA <- PCA(donnees_acp,
+               scale.unit = TRUE,
+               quali.sup = 4:13,  
+               graph = TRUE)
+explor(res_PCA)
+#on fait une cah pour avoir une typologie de l'évolution du vote 
+res_HCPC_PCA <- HCPC(res_PCA, graph = TRUE)
+#ça bug chez moi, a voir si ça bug chez les autres, mais sinon reprendre l'échantillon d'avant
+
+
+
+#ou alors on veut faire l'acm et dans ce cas là on discrétise 
+#on refait des quartiles
+var_active2_cat <- var_active2 %>%
+  mutate(across(
+    everything(),
+    ~ cut(.x, breaks = 10, labels = c("Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7", "Q8","Q9", "Q10"))
+  ))
+
+#on reprend les mêmes communes, en mettant en variables actives l'évolution des scores macron 
+
+var_active2 <- PresFrural %>% select(
+  Evol_nb_inscrits,
+  Evol_nb_abstentions,
+  Evol_nb_Macron)
+
+
+#mise en oeuvre de l'acm 
+
+res_ACM4 <- MCA(var_active2_cat, graph =F)
+explor(res_ACM4)
