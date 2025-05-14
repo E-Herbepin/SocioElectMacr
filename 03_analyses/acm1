@@ -237,11 +237,6 @@ res_ACM3 <- MCA(baseACM_clean, quali.sup = c(12, 13), graph = FALSE)
 
 explor(res_ACM3)
 
-# Export des valeurs propres
-write.csv(res_ACM3, "valeurs_propres_ACM.csv")
-
-# Export des contributions
-write.csv(res_ACM3$var$contrib, "contributions_modalites_ACM.csv")
 
 ###############################################
 #### Classification ascendante hi?rarchique (CAH)  ####
@@ -354,7 +349,8 @@ vars_illustratives_acp <- PresFrural %>%
     cs_agri_quartile,
     log_vacants_quartile,
     log_resprinc_quartile,
-    nat_etr_quartile
+    nat_etr_quartile,
+    libdens
   )
 donnees_acp <- bind_cols(var_active2, vars_illustratives_acp)
 res_PCA <- PCA(donnees_acp,
