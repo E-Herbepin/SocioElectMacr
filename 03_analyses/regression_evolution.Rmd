@@ -4,79 +4,86 @@ output: html_document
 date: "2025-05"
 ---
 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(include = FALSE)
 setwd("../")
 source("02_scripts/00_setup.R")
 source("02_scripts/01_import.R")
 source("02_scripts/05_recode_PresF.R")
-
 ```
 
 
 ```{r}
-PresF %<>%
+PresF %<>% # nolint
   mutate(
-    Age_q18_30 = rowSums(across(ends_with(c('q18_20', 'q21_25', 'q26_30'))), na.rm=TRUE),
-    Age_q30_40 = rowSums(across(ends_with(c('q31_35', 'q36_40'))), na.rm=TRUE),
-    Age_q40_50 = rowSums(across(ends_with(c('q41_45', 'q46_50'))), na.rm=TRUE),
-    Age_q50_60 = rowSums(across(ends_with(c('q51_55', 'q56_60'))), na.rm=TRUE),
-    Age_q60_70 = rowSums(across(ends_with(c('q61_65', 'q66_70'))), na.rm=TRUE),
-    Age_q70_100 = rowSums(across(ends_with(c('q71_75', 'q76_80', 'q81_85', 'q86_90', 'q91_95', 'q96_100'))), na.rm=TRUE),
-    Age_q18_30_pourc = 100*Age_q18_30/(Age_q18_30+Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
-    Age_q30_40_pourc = 100*Age_q30_40/(Age_q18_30+Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
-    Age_q40_50_pourc = 100*Age_q40_50/(Age_q18_30+Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
-    Age_q50_60_pourc = 100*Age_q50_60/(Age_q18_30+Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
-    Age_q60_70_pourc = 100*Age_q60_70/(Age_q18_30+Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
-    Age_q70_100_pourc = 100*Age_q70_100/(Age_q18_30+Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
+    Age_q18_30 = rowSums(
+      across(ends_with(c("q18_20", "q21_25", "q26_30"))), na.rm = TRUE), # nolint
+    Age_q30_40 = rowSums(across(ends_with(c("q31_35", "q36_40"))), na.rm = TRUE),
+    Age_q40_50 = rowSums(across(ends_with(c("q41_45", "q46_50"))), na.rm = TRUE),
+    Age_q50_60 = rowSums(across(ends_with(c("q51_55", "q56_60"))), na.rm = TRUE),
+    Age_q60_70 = rowSums(across(ends_with(c("q61_65", "q66_70"))), na.rm = TRUE),
+    Age_q70_100 = rowSums(across(ends_with(c("q71_75", "q76_80", "q81_85", "q86_90", "q91_95", "q96_100"))), na.rm = TRUE),
+    Age_q18_30_pourc = 100 * Age_q18_30 / (Age_q18_30 + Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
+    Age_q30_40_pourc = 100 * Age_q30_40 / (Age_q18_30 + Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
+    Age_q40_50_pourc = 100 * Age_q40_50 / (Age_q18_30 + Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
+    Age_q50_60_pourc = 100 * Age_q50_60 / (Age_q18_30 + Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
+    Age_q60_70_pourc = 100 * Age_q60_70 / (Age_q18_30 + Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
+    Age_q70_100_pourc = 100 * Age_q70_100 / (Age_q18_30 + Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
   )
 
-
 modele <- PresF %>%
-  #On a pris comme référence pour l'age les 18-30 ans
-  #La référence pour les PCS est employés
+  # On a pris comme référence pour l'age les 18-30 ans
+  # La référence pour les PCS est employés
   lm(diff_pourc_macron ~ pourc_macron_17 + libdens + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc, data = .)
 summary(modele)
 
-modele_td <- tidy(modele) |> #Récupère un tableau propre
+modele_td <- tidy(modele) |> # Récupère un tableau propre
   select(term, estimate) |>
-  mutate(term = recode(term,
-                       `(Intercept)` = "Constante",
-                       pourc_macron_17 = "Proportion de vote Macron en 2017",
-                       `libdensCeintures urbaines` = "Ceintures urbaines",
-                       `libdensCentres urbains intermédiaires` = "Centres urbains intermédiaires",
-                       `libdensGrands centres urbains` = "Grands centres urbains",
-                       `libdensPetites villes` = "Petites villes",
-                       `libdensRural à habitat dispersé` = "Rural à habitat dispersé",
-                       `libdensRural à habitat très dispersé` = "Rural à habitat très dispersé",
-                       cs_ouvr_pourc = "Ouvrier.es",
-                       cs_cpis_pourc = "Cadres et professions intellectuelles supérieures",
-                       cs_pi_pourc = "Professions intermédiaires",
-                       cs_agri_pourc = "Agriculteur.ices",
-                       cs_acce_pourc = "Chef.fes d'entreprise",
-                       Age_q30_40_pourc = "31-40 ans",
-                       Age_q40_50_pourc = "41-50 ans",
-                       Age_q50_60_pourc = "51-60 ans",
-                       Age_q60_70_pourc = "61-70 ans",
-                       Age_q70_100_pourc = "71 ans et plus"),
-         estimate = round(estimate, 3))
+  mutate(
+    term = recode(term,
+      `(Intercept)` = "Constante",
+      pourc_macron_17 = "Proportion de vote Macron en 2017",
+      `libdensCeintures urbaines` = "Ceintures urbaines",
+      `libdensCentres urbains intermédiaires` = "Centres urbains intermédiaires",
+      `libdensGrands centres urbains` = "Grands centres urbains",
+      `libdensPetites villes` = "Petites villes",
+      `libdensRural à habitat dispersé` = "Rural à habitat dispersé",
+      `libdensRural à habitat très dispersé` = "Rural à habitat très dispersé",
+      cs_ouvr_pourc = "Ouvrier.es",
+      cs_cpis_pourc = "Cadres et professions intellectuelles supérieures",
+      cs_pi_pourc = "Professions intermédiaires",
+      cs_agri_pourc = "Agriculteur.ices",
+      cs_acce_pourc = "Chef.fes d'entreprise",
+      Age_q30_40_pourc = "31-40 ans",
+      Age_q40_50_pourc = "41-50 ans",
+      Age_q50_60_pourc = "51-60 ans",
+      Age_q60_70_pourc = "61-70 ans",
+      Age_q70_100_pourc = "71 ans et plus"
+    ),
+    estimate = round(estimate, 3)
+  )
 
-modele_td |> 
-  gt() |> 
-  tab_header(title = 'Evolution du vote Macron entre 2017 et 2022', subtitle = 'Modèle de régression linéaire')|> 
-  tab_style(style = cell_text(weight = 'bold', font = google_font('Merriweather')),
-            locations = cells_column_labels()) |> 
+modele_td |>
+  gt() |>
+  tab_header(title = "Evolution du vote Macron entre 2017 et 2022", subtitle = "Modèle de régression linéaire") |>
+  tab_style(
+    style = cell_text(weight = "bold", font = google_font("Merriweather")),
+    locations = cells_column_labels()
+  ) |>
   tab_source_note("Source : Insee, recensement 2020 ; Ministère de l'intérieur, résultats des Présidentielles 2017 et 2022") |>
-  tab_source_note("Lecture : En comparaison aux employés, 1 point de pourcentage d'ouvrier.es supplémentaire dans la composition de la population d'une commune augmente de 0,043 point de pourcentage supplémentaire l'évolution du vote Macron entre 2017 et 2022") |> 
-  cols_label(term = ' ', 
-            estimate = 'Coefficient') |> 
+  tab_source_note("Lecture : En comparaison aux employés, 1 point de pourcentage d'ouvrier.es supplémentaire dans la composition de la population d'une commune augmente de 0,043 point de pourcentage supplémentaire l'évolution du vote Macron entre 2017 et 2022") |>
+  cols_label(
+    term = " ",
+    estimate = "Coefficient"
+  ) |>
   tab_options(
     data_row.padding = px(6),
-    heading.align = 'left',
+    heading.align = "left",
     heading.title.font.size = px(26),
     heading.subtitle.font.size = px(18),
     table_body.hlines.width = px(0)
-  ) |> 
+  ) |>
   tab_row_group(
     label = "",
     rows = 1:2
@@ -84,36 +91,30 @@ modele_td |>
   tab_row_group(
     label = "Densité",
     rows = 3:8
-  )  |> 
+  ) |>
   tab_row_group(
     label = "Proportions des CSP (référence : Employés)",
     rows = 9:13
-  ) |> 
+  ) |>
   tab_row_group(
     label = "Proportions des catégories d'âges (référence : 18-30 ans)",
     rows = 14:18
-  ) |> 
+  ) |>
   row_group_order(
-    groups = c("","Densité", "Proportions des CSP (référence : Employés)", "Proportions des catégories d'âges (référence : 18-30 ans)")
-  ) |> 
+    groups = c("", "Densité", "Proportions des CSP (référence : Employés)", "Proportions des catégories d'âges (référence : 18-30 ans)")
+  ) |>
   gtsave("regression_evolution.docx", path = "../03_analyses/")
-  
-glance(modele)
+
 
 
 
 library(gtExtras)
 install.packages("gtExtras")
-#ouvrir le dossier dans une nouvelle fenetre
+# ouvrir le dossier dans une nouvelle fenetre
 system("open ../03_analyses/regression_evolution.txt")
 
 
-
-
-
-
-
-dt<-modele$coefficients
+dt <- modele$coefficients
 library(gt)
 
 gt(dt) %>%
@@ -126,6 +127,5 @@ gt(dt) %>%
     std.error = "Erreur standard",
     statistic = "Statistique t",
     p.value = "p-value"
-  ) 
-
+  )
 ```
