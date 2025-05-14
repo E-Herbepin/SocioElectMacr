@@ -101,7 +101,7 @@ PresFrural <- PresFrural %>%
                            "Etranger Q2",
                            "Etranger Q3",
                            "Etranger Q4"))) 
-#pour l'age deja fait 
+#pour l'age 
 
 
 
@@ -153,7 +153,7 @@ View(var_active)
 # (base avec uniquement les variables actives)
 
 res_ACM <- MCA(var_active, graph =F)
-explor(res_ACM)
+#explor(res_ACM)
 
 
 #Interpr?tation: regarder les % d'inertie
@@ -175,7 +175,20 @@ modif.rate(res_ACM)
 
 
 # PREMIERE ETAPE : on cree une base de donnees contenant les variables illustratives 
-var_illustrative1 <- select(PresFrural, "Nb_17_Voix_Macron", "Nb_17_Inscrits" "Nb_"Nb_22_Abstentions")
+
+PresFrural <- PresFrural %>%
+  mutate(
+    Nb_17_Voix_Macron_quartile = cut(Nb_17_Voix_Macron,
+                                     breaks = quantile(Nb_17_Voix_Macron, probs = seq(0, 1, 0.25), na.rm = TRUE),
+                                     include.lowest = TRUE,
+                                     labels = c("Voix Macron Q1", "Voix Macron Q2", "Voix Macron Q3", "Voix Macron Q4")),
+    
+    Nb_17_Abstentions_quartile = cut(Nb_17_Abstentions,
+                                     breaks = quantile(Nb_17_Abstentions, probs = seq(0, 1, 0.25), na.rm = TRUE),
+                                     include.lowest = TRUE,
+                                     labels = c("Abstention Q1", "Abstention Q2", "Abstention Q3", "Abstention Q4"))
+  )
+var_illustrative <- select(PresFrural,"Nb_17_Voix_Macron_quartile","Nb_17_Abstentions_quartile")
 
 
 
@@ -183,9 +196,10 @@ var_illustrative1 <- select(PresFrural, "Nb_17_Voix_Macron", "Nb_17_Inscrits" "N
 ## NB : on n'a pas modifie l'ordre des lignes apres la creation de var_actives et var_illustratives,
 # donc on peut fusionner les deux bases sans risque
 
+#Attention, on reprnd bien la bse avec NA imput?es.
 
+baseACM <- cbind.data.frame(var_active,var_illustrative)
 
-baseACM <- cbind.data.frame(var_active,var_illustrative1)
 View(baseACM)
 
 ## Exportation de la base complete et propre
@@ -193,8 +207,9 @@ View(baseACM)
 
 # Commande de mise en oeuvre de l'ACM
 # (base complete)
+
 colnames(baseACM)
-res_ACM3 <- MCA(baseACM, graph=F)
+res_ACM3 <- MCA(baseACM, quanti.sup = c(11, 12), graph = FALSE)
 
 explor(res_ACM3)
 #bug?
@@ -202,20 +217,23 @@ explor(res_ACM3)
 #### Classification ascendante hi?rarchique (CAH)  ####
 ###############################################
 
+#Remarque: on reprend le script pr?c?dent comme pr?alable.
+
 ##1. Construire la classification
 #on va cat?goriser nos communes en fonction des variables actives de l'ACM
 
 #on applique la fonction HCPC au r?sultat de l'ACM
 #la classification utilise alors les variables actives.
 
-HCPC(res_ACM)
+HCPC(res_ACM3)
 
 
 #pour conna?tre les effectifs et % de chaque cluster
 freq(hcpc$data.clust$clust)
 #fonctionne pas sur mon pc ? faire echantillon
-
 PresFrural_sample <- PresFrural %>% sample_n(5000)
+
+
 var_active_sample <- PresFrural_sample %>% select(
   #emploi
   empl_precaire_quartile,
@@ -232,14 +250,10 @@ var_active_sample <- PresFrural_sample %>% select(
   
   
   #nationalite
-  nat_etr_quartile,
-  #age
-  age_q1,
-  age_q2,
-  age_q3)
+  nat_etr_quartile)
 
 res_ACM_sample <- MCA(var_active_sample, graph =F)
-var_illustrative <- select(PresFrural_sample, "Nb_17_Voix_Macron", "Nb_17_Inscrits" "Nb_"Nb_17_Abstentions")
+var_illustrative <- select(PresFrural_sample,"Nb_22_Voix_Macron", "Nb_17_Voix_Macron", "Nb_22_Abstentions")
 
 baseACM_sample <- cbind.data.frame(var_active_sample,var_illustrative)
 
@@ -249,9 +263,9 @@ HCPC(res_ACM_sample)
 hcpc <- HCPC(res_ACM_sample)
 plot(hcpc)
 freq(hcpc$data.clust$clust)
-#on a que 2 classes... pas terrible ? je suis pas convaincue de si c'est pertinent à garder, donc à voir
+#on a que 2 classes... pas terrible ?
 
-#pour croiser la variable class3 avec chaque variable utilis?e, j'ai pas tout fait parce que pas sûr que ce soit pertinent
+#on peut croiser la variable class3 avec chaque variable utilis?e:
 lprop(table(PresFrural$class3, PresFrural$emp_precaire_quartile))
 
 
@@ -272,21 +286,32 @@ EVS$class3 <- fct_recode(EVS$class3,
 freq(EVS$class3)
 
 
-####### Deuxième ACM
+####### Deuxième ACP
 
 colnames(PresFrural)
 #creer des variables pour montrer évolution vote macron entre 2017 et 2022
-
+#sorte d'espace social des évolutions du vote dans la ruralité entre 2027 et 2022
 PresFrural <- PresFrural %>%
   mutate(
     Evol_nb_inscrits = Nb_22_Inscrits -  Nb_17_Inscrits,
     Evol_nb_abstentions = Nb_22_Abstentions - Nb_17_Abstentions,
-    Evol_nb_Macron = Nb_22_Voix_Macron - Nb_17_Voix_Macron
+    Evol_nb_Macron = Nb_22_Voix_Macron - Nb_17_Voix_Macron,
+    Evol_nb_Le_Pen = Nb_22_Voix_Le_Pen - Nb_17_Voix_Le_Pen,
+    Evol_nb_Mélenchon = Nb_22_Voix_Mélenchon - Nb_17_Voix_Mélenchon,
+    Evol_nb_Lr = Nb_22_Voix_Pécresse - Nb_17_Voix_Fillon
   )
+var_active2 <- PresFrural %>% select(
+  Evol_nb_inscrits,
+  Evol_nb_abstentions,
+  Evol_nb_Macron,
+  Evol_nb_Le_Pen,
+  Evol_nb_Mélenchon,
+  Evol_nb_Lr)
+
 #problème : on a des variables continues et pas catégorielles
 #on peut faire une acp 
 res_ACP <- PCA(var_active2, scale.unit = TRUE, graph = FALSE)
-explor(res_ACP)
+#explor(res_ACP)
 #rajoute variables illustratives 
 vars_illustratives_acp <- PresFrural %>%
   select(
@@ -304,12 +329,13 @@ vars_illustratives_acp <- PresFrural %>%
 donnees_acp <- bind_cols(var_active2, vars_illustratives_acp)
 res_PCA <- PCA(donnees_acp,
                scale.unit = TRUE,
-               quali.sup = 4:13,  
+               quali.sup = 7:16,  
                graph = TRUE)
 explor(res_PCA)
 #on fait une cah pour avoir une typologie de l'évolution du vote 
 res_HCPC_PCA <- HCPC(res_PCA, graph = TRUE)
 #ça bug chez moi, a voir si ça bug chez les autres, mais sinon reprendre l'échantillon d'avant
+
 
 
 
@@ -323,10 +349,7 @@ var_active2_cat <- var_active2 %>%
 
 #on reprend les mêmes communes, en mettant en variables actives l'évolution des scores macron 
 
-var_active2 <- PresFrural %>% select(
-  Evol_nb_inscrits,
-  Evol_nb_abstentions,
-  Evol_nb_Macron)
+
 
 
 #mise en oeuvre de l'acm 
