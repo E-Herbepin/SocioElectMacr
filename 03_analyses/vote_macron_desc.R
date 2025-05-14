@@ -1,7 +1,7 @@
 ### Premières analyses.
 
-source("02_scripts/00_setup.R")
-source("02_scripts/01_import.R")
+#source("02_scripts/00_setup.R")
+#source("02_scripts/01_import.R")
 ## On crée une variable pour les voix Macron en pourcentage des votes exprimés.
 
 PresF <- PresF %>%
@@ -9,13 +9,23 @@ PresF <- PresF %>%
 
 PresF <- PresF %>%
   mutate(
-    ## On crée une variable pour les voix Macron en pourcentage des votes exprimés.
+    ## On crée une variable pour les voix Macron, Le Pen, Fillon et JLM en pourcentage des votes exprimés.
     # Pour 2017
     pourc_macron_17 = Nb_17_Voix_Macron * 100 / Nb_17_Exprimés,
+    pourc_lepen_17 = Nb_17_Voix_Le_Pen * 100 / Nb_17_Exprimés,
+    pourc_fillon_17 = Nb_17_Voix_Fillon * 100 / Nb_17_Exprimés,
+    pourc_melenchon_17 = Nb_17_Voix_Mélenchon * 100 / Nb_17_Exprimés,
+    
     # Pour 2022
     pourc_macron_22 = Nb_22_Voix_Macron * 100 / Nb_22_Exprimés,
+    pourc_lepen_22 = Nb_22_Voix_Le_Pen * 100 / Nb_22_Exprimés,
+    pourc_melenchon_22 = Nb_22_Voix_Mélenchon * 100 / Nb_22_Exprimés,
+    pourc_pecresse_22 = Nb_22_Voix_Pécresse * 100 / Nb_22_Exprimés,
     ## On crée une variable qui calcule la différence de pourcentage entre les deux.
     diff_pourc_macron = pourc_macron_22 - pourc_macron_17,
+    diff_pourc_lepen = pourc_lepen_22 - pourc_lepen_17,
+    diff_pourc_melenchon = pourc_melenchon_22 - pourc_melenchon_17,
+    diff_pourc_LR = pourc_pecresse_22 - pourc_fillon_17,
     
     cs_pi_pourc = cs_pi_n * 100 / cs_tot,
     cs_agri_pourc = cs_agri_n * 100 / cs_tot,
@@ -24,20 +34,7 @@ PresF <- PresF %>%
     dens = as.factor(PresF$dens)
   )
 
-PresF <- PresF %>%
-  mutate(pourc_macron_22 = Nb_22_Voix_Macron * 100 / Nb_22_Exprimés)
-# summary(PresF$diff_pourc_macron)
-# mean(PresF$diff_pourc_macron, na.rm = TRUE)
-#
-# barplot(PresF$diff_pourc_macron)
 
-PresF <- PresF %>% 
-  mutate(diff_pourc_macron = pourc_macron_22 - pourc_macron_17)
-
-summary(PresF$diff_pourc_macron)
-mean(PresF$diff_pourc_macron, na.rm = TRUE)
-
-barplot(PresF$diff_pourc_macron)
 
 PresF$dens<-as.factor(PresF$dens)
 
@@ -114,7 +111,7 @@ PresF %>%
   group_by(decile) %>%
   summarise(moyenne = mean(diff_pourc_macron)) %>%
   mutate(CSP = "Cadres et professions intellectuelles supérieures") %>%
-  filter(decile %in% c(1:10))
+  filter(decile %in% c(1:10)),
 
 PresF %>%
   mutate(decile = as.factor(ntile(cs_ouvr_pourc, 10))) %>%
@@ -258,32 +255,11 @@ PresF %>%
        Lecture : 10% des communes ont une proportion d'emploi stable inférieure à 50%."
   )
 
-  names(Pres)
-names(communes)
 
-match <- Pres |>
-  right_join(communes, by = c("Libellé_commune" = "libgeo")) %>%
-  filter(!is.na(Libellé_région))
 
-match <- match %>%
-  filter(!Libellé_région %in% c("Guyane", "La Réunion", "Martinique", "Guadeloupe"))
 
-boxplot(match$diff_pourc_macron)
 
-match %>%
-  filter(dens %in% c(6, 5, 4)) %>%
-  ggplot(aes(y = diff_pourc_macron)) +
-  geom_boxplot() +
-  labs(title = "Boxplot de diff_pourc_macron", y = "Différence pourcentage Macron")
 
-match %>%
-  filter(dens %in% c(6, 5, 4)) %>%
-  summarise(
-    moyenne = mean(diff_pourc_macron, na.rm = TRUE),
-    mediane = median(diff_pourc_macron, na.rm = TRUE),
-    quartiles = list(quantile(diff_pourc_macron, na.rm = TRUE))
-  )
-unique(match$Libellé_région)
 
 PresF %>%
   filter(!is.na(libdens)) %>%
@@ -346,7 +322,7 @@ ggsave(
   units = "in"
 )
 
-Proportion d'agriculteurrs exploitants dans les bourgs ruraux .'
+#Proportion d'agriculteurs exploitants dans les bourgs ruraux .'
 
 
 tmp <- PresF %>%
