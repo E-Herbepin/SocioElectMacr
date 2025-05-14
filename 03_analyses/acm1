@@ -117,7 +117,18 @@ PresFrural <- PresFrural %>%
     )
   )
 
-
+PresFrural <- PresFrural %>%
+  mutate(age_moy_tranche = case_when(
+    age_moy >= 18 & age_moy <= 30 ~ "18-30",
+    age_moy >= 31 & age_moy <= 40 ~ "31-40",
+    age_moy >= 41 & age_moy <= 50 ~ "41-50",
+    age_moy >= 51 & age_moy <= 60 ~ "51-60",
+    age_moy >= 61 & age_moy <= 70 ~ "61-70",
+    age_moy >= 71 & age_moy <= 80 ~ "71-80",
+    age_moy >= 81 & age_moy <= 90 ~ "81-90",
+    age_moy >= 91 & age_moy <= 100 ~ "91-100",
+    TRUE ~ NA_character_  # pour les valeurs hors bornes ou manquantes
+  ))
 ################################################
 #### Mise en oeuvre de l'ACM
 
@@ -143,16 +154,24 @@ var_active <- PresFrural %>% select(
   nat_etr_quartile,
   
   #age
-  age_q1,
-  age_q2,
-  age_q3)
+  age_moy_tranche)
 
 View(var_active)
-
+PresFrural
+colnames(PresFrural)
 # Commande de mise en oeuvre de l'ACM
 # (base avec uniquement les variables actives)
 
-res_ACM <- MCA(var_active, graph =F)
+
+baseACM <- cbind.data.frame(var_active,var_illustrative) %>% 
+  na.omit() |> #Enlève tous les NA, que Factominer n'aime pas non plus
+  lapply(as.factor) |> #Applique à toutes les colonnes 'as.factor'
+  as.data.frame() #lapply renvoi le tableau sous une forme bizarre donc on en refait un tableau normal`
+
+
+
+
+#res_ACM <- MCA(var_active, graph =F)
 #explor(res_ACM)
 
 
@@ -201,18 +220,29 @@ var_illustrative <- select(PresFrural,"Nb_17_Voix_Macron_quartile","Nb_17_Absten
 baseACM <- cbind.data.frame(var_active,var_illustrative)
 
 View(baseACM)
+colnames(baseACM)
 
 ## Exportation de la base complete et propre
 #write.csv(baseACM,"baseACM.csv")
 
 # Commande de mise en oeuvre de l'ACM
 # (base complete)
-
+library(questionr)
 colnames(baseACM)
-res_ACM3 <- MCA(baseACM, quanti.sup = c(11, 12), graph = FALSE)
+
+baseACM_clean <- baseACM %>% 
+  na.omit() %>% 
+  mutate(across(everything(), as.factor)) 
+res_ACM3 <- MCA(baseACM_clean, quali.sup = c(12, 13), graph = FALSE)
 
 explor(res_ACM3)
-#bug?
+
+# Export des valeurs propres
+write.csv(res_ACM3, "valeurs_propres_ACM.csv")
+
+# Export des contributions
+write.csv(res_ACM3$var$contrib, "contributions_modalites_ACM.csv")
+
 ###############################################
 #### Classification ascendante hi?rarchique (CAH)  ####
 ###############################################
