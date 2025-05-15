@@ -35,8 +35,11 @@ PresF %<>% # nolint
 modele <- PresF %>%
   # On a pris comme référence pour l'age les 18-30 ans
   # La référence pour les PCS est employés
-  lm(diff_pourc_macron ~ pourc_macron_17 + libdens + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc, data = .)
+  # La référence pour les proportions de logement est la résidence principale
+  lm(diff_pourc_macron ~ pourc_macron_17 + libdens + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h, data = .)
 summary(modele)
+
+# ajouter genre + logement + centrer
 
 modele_td <- tidy(modele) |> # Récupère un tableau propre
   select(term, estimate) |>
@@ -109,11 +112,6 @@ modele_td |>
 
 
 library(gtExtras)
-install.packages("gtExtras")
-# ouvrir le dossier dans une nouvelle fenetre
-system("open ../03_analyses/regression_evolution.txt")
-
-
 dt <- modele$coefficients
 library(gt)
 
@@ -129,3 +127,124 @@ gt(dt) %>%
     p.value = "p-value"
   )
 ```
+
+# Regression sur les communes rurales
+```{r}
+
+modele2 <- PresF %>%
+  filter(libdens %in% c("Rural à habitat dispersé", "Rural à habitat très dispersé", "Bourgs ruraux")) %>%
+  # On a pris comme référence pour l'age les 18-30 ans
+  # La référence pour les PCS est employés
+  # La référence pour les proportions de logement est la résidence principale
+  lm(diff_pourc_macron ~ pourc_macron_17 + libdens + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h, data = .)
+summary(modele)
+
+
+# ajouter genre + logement + centrer
+
+modele_td <- tidy(modele2) |> # Récupère un tableau propre
+  select(term, estimate) |>
+  mutate(
+    term = recode(term,
+      `(Intercept)` = "Constante",
+      pourc_macron_17 = "Proportion de vote Macron en 2017",
+      `libdensCeintures urbaines` = "Ceintures urbaines",
+      `libdensCentres urbains intermédiaires` = "Centres urbains intermédiaires",
+      `libdensGrands centres urbains` = "Grands centres urbains",
+      `libdensPetites villes` = "Petites villes",
+      `libdensRural à habitat dispersé` = "Rural à habitat dispersé",
+      `libdensRural à habitat très dispersé` = "Rural à habitat très dispersé",
+      cs_ouvr_pourc = "Ouvrier.es",
+      cs_cpis_pourc = "Cadres et professions intellectuelles supérieures",
+      cs_pi_pourc = "Professions intermédiaires",
+      cs_agri_pourc = "Agriculteur.ices",
+      cs_acce_pourc = "Chef.fes d'entreprise",
+      Age_q30_40_pourc = "31-40 ans",
+      Age_q40_50_pourc = "41-50 ans",
+      Age_q50_60_pourc = "51-60 ans",
+      Age_q60_70_pourc = "61-70 ans",
+      Age_q70_100_pourc = "71 ans et plus"
+    ),
+    estimate = round(estimate, 3)
+  )
+
+modele_td |>
+  gt() |>
+  tab_header(title = "Evolution du vote Macron entre 2017 et 2022", subtitle = "Modèle de régression linéaire") |>
+  tab_style(
+    style = cell_text(weight = "bold", font = google_font("Merriweather")),
+    locations = cells_column_labels()
+  ) |>
+  tab_source_note("Source : Insee, recensement 2020 ; Ministère de l'intérieur, résultats des Présidentielles 2017 et 2022") |>
+  tab_source_note("Lecture : En comparaison aux employés, 1 point de pourcentage d'ouvrier.es supplémentaire dans la composition de la population d'une commune augmente de 0,043 point de pourcentage supplémentaire l'évolution du vote Macron entre 2017 et 2022") |>
+  cols_label(
+    term = " ",
+    estimate = "Coefficient"
+  ) |>
+  tab_options(
+    data_row.padding = px(6),
+    heading.align = "left",
+    heading.title.font.size = px(26),
+    heading.subtitle.font.size = px(18),
+    table_body.hlines.width = px(0)
+  ) |>
+  gtsave("regression_evolution_rural.docx", path = "../03_analyses/")
+
+
+
+
+
+
+
+
+``` 
+
+
+
+
+Regression multiniveau
+```{r}
+library(lme4)
+library(lmerTest)
+
+PresF$libdens <- factor(PresF$libdens, levels = c("Rural à habitat très dispersé", "Rural à habitat dispersé", "Bourgs ruraux", "Ceintures urbaines", "Petites villes", "Grands centres urbains", "Centres urbains intermédiaires"))
+
+PresF$libdens_group <- ifelse(PresF$libdens %in% c("Rural à habitat très dispersé", "Rural à habitat dispersé", "Bourgs ruraux"),
+                             "Rural", "Urbain")
+
+PresF$libdens_group_dec <- ifelse(PresF$libdens %in% c("Ceintures urbaines", "Petites villes", "Grands centres urbains", "Centres urbains intermédiaires"),"Urbain", PresF$libdens)
+
+
+# modele à intercept variable (les deux groupes commencent à des niveaux différents)
+# Permet de voir la différence brute, toutes choses contrôlées égales par ailleurs
+# La meme chose que le modele linéaire avec dens comme variable ?
+model_mult <- lmer(diff_pourc_macron ~ pourc_macron_17 + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h +
+                (1 | libdens_group), data = PresF)
+
+
+
+# modele à intercept fixe mais coefficients variables (les deux groupes commencent au meme niveau mais les variables sociodemo ont des effets différenciés)
+# Permets de voir si les effets des variables sociodémographiques sont différents entre les deux groupes
+# On fixe l'intercept pour faciliter la lecture 
+model_mult2 <- lmer(
+  diff_pourc_macron ~ pourc_macron_17+ cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h + (pourc_macron_17 + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h | libdens_group),
+  data = PresF,
+  weights = PresF$pop,
+  na.action = na.omit
+  )
+
+
+# Le même avec les différentes densités rurales : 
+model_mult2 <- lmer(
+  diff_pourc_macron ~ pourc_macron_17+ cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h + (pourc_macron_17 + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h | libdens_group_dec),
+  data = PresF,
+  weights = PresF$pop,
+  na.action = na.omit
+  )
+
+summary(model_mult2)
+ranef(model_mult2)
+# Résumé du modèle
+summary(model_mult)
+
+``` 

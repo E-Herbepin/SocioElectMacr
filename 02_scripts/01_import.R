@@ -636,6 +636,8 @@ if (!file.exists("01_data/Présidentielles 2017-2022/Présidentielles&Recensemen
   
   # RECENSEMENT 2020 ----
   
+  if (!file.exists("01_data/census20/census20_recode.Rdata")) {
+  
   ## Fichiers activité ----
   
   census20_act2a <- read_xlsx(here("01_data/census20", "TD_ACT2A_2020.xlsx"), skip = 10) %>%
@@ -830,6 +832,24 @@ if (!file.exists("01_data/Présidentielles 2017-2022/Présidentielles&Recensemen
     group_by(CODGEO, LIBGEO, LIBDENS, DENS) %>%
     summarise(across(where(is.numeric), ~ sum(.x, na.rm = TRUE)), .groups = "drop")
   
+  
+  save(census20_act4,
+       census20_act3,
+       census20_act2b,
+       census20_act2a,
+       census20_emp4,
+       census20_emp3,
+       census20_emp1,
+       census20_for2,
+       census20_img1A,
+       census20_nat1,
+       census20_log1,
+       census20_pop1B,
+       densite_communes,
+       file = here("01_data/census20", "census20_recode.Rdata"))
+  } else {
+    load(here("01_data/census20", "census20_recode.Rdata"))
+  }
   
   # Fusion Recensement ----
   
