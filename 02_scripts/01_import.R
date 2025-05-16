@@ -887,3 +887,117 @@ shp_path <- here("01_data/geoloc", "fr-esr-referentiel-geographique.shp")
 france_sf <-
   st_read(shp_path) %>%
   filter(regrgp_nom != "DROM-COM")
+
+# Pourcentages candidats :
+
+### On crée une variable pour les voix au premier tour.
+
+## Macron
+
+# Parmi les exprimés en 2017
+
+PresF <- PresF %>%
+  mutate(pourc_macron_17 = Nb_17_Voix_Macron * 100 / Nb_17_Exprimés)
+
+# Parmi les inscrits en 2017
+
+PresF <- PresF %>%
+  mutate(pourc_macron_17_inscr = Nb_17_Voix_Macron * 100 / Nb_17_Inscrits)
+
+# Parmi les exprimés en 2022
+
+PresF <- PresF %>%
+  mutate(pourc_macron_22 = Nb_22_Voix_Macron * 100 / Nb_22_Exprimés)
+
+# Parmi les incrits en 2022
+
+PresF <- PresF %>%
+  mutate(pourc_macron_22_inscr = Nb_22_Voix_Macron * 100 / Nb_22_Inscrits)
+
+## Le Pen
+
+# Parmi les exprimés en 2017
+
+PresF <- PresF %>%
+  mutate(pourc_lepen_17 = Nb_17_Voix_Le_Pen * 100 / Nb_17_Exprimés)
+
+# Parmi les exprimés en 2022
+
+PresF <- PresF %>%
+  mutate(pourc_lepen_22 = Nb_22_Voix_Le_Pen * 100 / Nb_22_Exprimés)
+
+## Républicains (Fillon et Pécresse)
+
+# Parmi les exprimés en 2017
+
+PresF <- PresF %>%
+  mutate(pourc_repu_17 = Nb_17_Voix_Fillon * 100 / Nb_17_Exprimés)
+
+# Parmi les exprimés en 2022
+
+PresF <- PresF %>%
+  mutate(pourc_repu_22 = Nb_22_Voix_Pécresse * 100 / Nb_22_Exprimés)
+
+## Mélenchon
+
+# Parmi les exprimés en 2017
+
+PresF <- PresF %>%
+  mutate(pourc_melenchon_17 = Nb_17_Voix_Mélenchon * 100 / Nb_17_Exprimés)
+
+# Parmi les exprimés en 2022
+
+PresF <- PresF %>%
+  mutate(pourc_melenchon_22 = Nb_22_Voix_Mélenchon * 100 / Nb_22_Exprimés)
+
+## Parti socialiste
+
+# Parmi les exprimés en 2017
+
+PresF <- PresF %>% 
+  mutate(pourc_ps_17 = Nb_17_Voix_Hamon * 100 / Nb_17_Exprimés)
+
+# Parmi les exprimés en 2022
+
+PresF <- PresF %>% 
+  mutate(pourc_ps_22 = Nb_22_Voix_Hidalgo * 100 / Nb_22_Exprimés)
+
+### On crée une variable pour suivre les évolutions de vote.
+
+## Macron
+
+# Parmi les exprimés.
+
+PresF <- PresF %>%
+  mutate(diff_pourc_macron = pourc_macron_22 - pourc_macron_17)
+
+# Parmi les inscrits.
+
+PresF <- PresF %>% 
+  mutate(diff_pourc_macron_inscr = pourc_macron_22_inscr - pourc_macron_17_inscr)
+
+## Républicains
+
+# Parmi les exprimés
+
+PresF <- PresF %>%
+  mutate(diff_pourc_repu = pourc_repu_22 - pourc_repu_17)
+
+## Le Pen
+
+# Parmi les exprimés
+
+PresF <- PresF %>%
+  mutate(diff_pourc_lepen = pourc_lepen_22 - pourc_lepen_17)
+
+## Parti socialiste
+
+# Parmi les exprimés
+
+PresF <- PresF %>%
+  mutate(diff_pourc_ps = pourc_ps_22 - pourc_ps_17)
+
+## Mélenchon
+
+PresF <- PresF %>%
+  mutate(diff_pourc_melenchon = pourc_melenchon_22 - pourc_melenchon_17)
