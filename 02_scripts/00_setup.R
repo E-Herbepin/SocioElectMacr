@@ -9,7 +9,6 @@ library(magrittr) # pour les pipes
 library(questionr) # pour la description des variables
 library(janitor) # pour des outils de description
 library(here)
-
 library(knitr)
 library(rmarkdown)
 library(printr)
@@ -33,7 +32,9 @@ library(gtsummary) # pour les tableaux
 
 library(mapsf)
 library(sf)
-#test
+library(mapview)
+library(biscale)
+library(cowplot)
 
 # OPTIONS ----
 

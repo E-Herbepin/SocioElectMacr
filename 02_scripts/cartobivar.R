@@ -1,25 +1,3 @@
-library(sf)
-library(mapview)
-library(mapsf)
-library(biscale)
-library(cowplot)
-# charger la géométrie avec sf
-comsf <- st_read(dsn = "01_data//geoloc/geometry/COMMUNE.shp",
-                 stringsAsFactors = F)
-# Simplifier pour que le code aille plus vite
-comsf<- st_simplify(comsf, dTolerance = 1000)
-comsf <- comsf %>% rename(DepCom = INSEE_COM)%>%
-  select(-INSEE_CAN,-INSEE_ARR,-INSEE_DEP,-INSEE_REG, -POPULATION,-NOM, -NOM_M, -STATUT, -SIREN_EPCI)
-# interroger le système de coordoonées
-st_crs(comsf)
-# projeter le fond de carte dans le référentiel Lambert93 (adapté pour la France)
-comsf <- st_transform(comsf, crs = 2154)
-# visualiser la géométrie
-#plot(comsf$geometry)
-# joindre les données de la base présidentielles
-comsf <- left_join(PresF, comsf, by = "DepCom")
-#comsf<- comsf %>% filter (Nb_17_Votants >= 15)
-comsf<-st_sf(comsf)
 #Création de la palette introduisant les zones non rurales
 palette <- c(
   "3-3" = "#574249",
