@@ -1,3 +1,8 @@
+# On enlève la Corse (à ajouter ultérieurement dans le script import)
+
+comsf <- comsf %>%
+  filter(!Code_département %in% c("2A", "2B"))
+
 ##### Cartes univariées
 
 ### Préparation des données
@@ -57,13 +62,13 @@ mf_scale(cex = 1)
 mf_arrow(cex = 1)
 
 # Ajouter la source et autres détails
-mf_credits(txt = "Source : Insee, données du recensement 2020.\nChamp : France métropolitaine.", cex = 1)
+mf_credits(txt = "Source : Insee, données du recensement 2020.\nChamp : France métropolitaine sauf Corse.", cex = 1)
 
 dev.off()
 
 ### Carte vote Macron
 
-png("macron_map.png", width = 12, height = 8, units = "in", res = 300)
+png("macron_map.png", width = 14, height = 12, units = "in", res = 300)
 
 mf_map(comsf,
        var = "pourc_macron_17",
@@ -86,7 +91,7 @@ mf_scale(cex = 1)
 mf_arrow(cex = 1)
 
 # Ajouter la source et autres détails
-mf_credits(txt = "Source : Ministère de l'Intérieur, données du premier tour des élections présidentielles 2017.\nChamp : France métropolitaine.", cex = 1)
+mf_credits(txt = "Source : Ministère de l'Intérieur, données du premier tour des élections présidentielles 2017.\nChamp : France métropolitaine sauf Corse.", cex = 1)
 
 dev.off()
 
