@@ -2,7 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
-03_analyses/
 01_data/
 *.Rproj
 recensement_communes.csv
