@@ -12,6 +12,8 @@ library(here)
 library(knitr)
 library(rmarkdown)
 library(printr)
+library(gt)
+library(webshot)
 
 library(haven)
 library(readxl)
