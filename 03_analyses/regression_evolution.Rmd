@@ -13,8 +13,97 @@ source("02_scripts/01_import.R")
 source("02_scripts/05_recode_PresF.R")
 ```
 
-
+# Recodage
 ```{r}
+
+
+
+PresF |> 
+  group_by(libdens) |>
+  summarise(
+    pop = sum(pop),
+    Nb_17_Inscrits = sum(Nb_17_Inscrits),
+    Nb_22_Inscrits = sum(Nb_22_Inscrits),
+    Nb_17_Votants = sum(Nb_17_Votants),
+    Nb_22_Votants = sum(Nb_22_Votants),
+    Nb_17_Voix_Macron = sum(Nb_17_Voix_Macron),
+    Nb_22_Voix_Macron = sum(Nb_22_Voix_Macron),
+  ) |> 
+  mutate(
+    pourc_macron_17_ins = 100* Nb_17_Voix_Macron / Nb_17_Inscrits,
+    pourc_macron_22_ins = 100*Nb_22_Voix_Macron / Nb_22_Inscrits,
+    diff_pourc_macron_ins = pourc_macron_22_ins - pourc_macron_17_ins,
+    pourc_macron_17_vot = 100* Nb_17_Voix_Macron / Nb_17_Votants,
+    pourc_macron_22_vot = 100*Nb_22_Voix_Macron / Nb_22_Votants,
+    diff_pourc_macron_vot = pourc_macron_22_vot - pourc_macron_17_vot
+  )
+
+library(Hmisc)
+#calculate weighted variance
+weighted_var <- wtd.var(PresF$prop_h, PresF$pop, na.rm = TRUE)
+#calculate weighted standard deviation
+sqrt(weighted_var)
+
+PresF |> 
+  group_by(libdens) |> 
+  summarise(
+    prop_h_mean = weighted.mean(prop_h, pop, na.rm = TRUE),
+    prop_h_sd = sqrt(wtd.var(prop_h, pop, na.rm = TRUE)),
+    prop_h_min = min(prop_h, na.rm = TRUE),
+    prop_h_max = max(prop_h, na.rm = TRUE),
+    prop_h_median = median(prop_h, na.rm = TRUE),
+    prop_h_q1 = quantile(prop_h, 0.25, na.rm = TRUE),
+    prop_h_q3 = quantile(prop_h, 0.75, na.rm = TRUE)
+  ) |> 
+  mutate(
+    prop_h_mean = round(prop_h_mean, 1),
+    prop_h_sd = round(prop_h_sd, 1),
+    prop_h_min = round(prop_h_min, 1),
+    prop_h_max = round(prop_h_max, 1),
+    prop_h_median = round(prop_h_median, 1),
+    prop_h_q1 = round(prop_h_q1, 1),
+    prop_h_q3 = round(prop_h_q3, 1)
+  ) |>
+  filter(libdens != "NA") |>
+  relocate(libdens, prop_h_mean, prop_h_sd, prop_h_min, prop_h_q1, prop_h_median, prop_h_q3, prop_h_max) |>
+  gt() |>
+  tab_header(
+    title = "Statistiques descriptives de la proportion d'hommes par densité",
+    subtitle = "Recensement 2020"
+  ) |>
+  tab_source_note("Source : Insee, recensement 2020") |>
+  tab_source_note("Lecture : La proportion d'hommes dans les communes rurales à habitat très dispersé est de 49,2% en moyenne, avec un écart-type de 0,1% et une médiane de 49,2%.") |>
+  cols_label(
+    libdens = "Densité",
+    prop_h_mean = "Moyenne",
+    prop_h_sd = "Ecart-type",
+    prop_h_min = "Minimum",
+    prop_h_max = "Maximum",
+    prop_h_median = "Médiane",
+    prop_h_q1 = "1er quartile",
+    prop_h_q3 = "3ème quartile"
+  ) |>
+  cols_align(
+    align = "left",
+    columns = c(libdens)
+  ) |>
+  cols_align(
+    align = "center",
+    columns = c(prop_h_mean, prop_h_sd, prop_h_min, prop_h_max, prop_h_median, prop_h_q1, prop_h_q3)
+  ) |>
+  tab_style(
+    style = list(
+      cell_fill(color = "#f0f0f0"),
+      cell_text(weight = "bold")
+    ),
+    locations = cells_column_labels(columns = everything())
+  ) |> 
+  gtsave("Statistiques_descriptives_prop_hommes.docx")
+
+
+
+
+
 PresF %<>% # nolint
   mutate(
     Age_q18_30 = rowSums(
@@ -30,179 +119,80 @@ PresF %<>% # nolint
     Age_q50_60_pourc = 100 * Age_q50_60 / (Age_q18_30 + Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
     Age_q60_70_pourc = 100 * Age_q60_70 / (Age_q18_30 + Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
     Age_q70_100_pourc = 100 * Age_q70_100 / (Age_q18_30 + Age_q30_40 + Age_q40_50 + Age_q50_60 + Age_q60_70 + Age_q70_100),
-  )
+  
+    libdens = fct_relevel(libdens, 
+                          "Rural à habitat très dispersé",
+                          "Rural à habitat dispersé",
+                          "Bourgs ruraux",
+                          "Petites villes",
+                          "Ceintures urbaines",
+                          "Centres urbains intermédiaires",
+                          "Grands centres urbains"
+                        ),
+    immi_pourc = 100 * immi_oui / (immi_oui + immi_non),
+    ) |> 
+  relocate(c(cs_empl_pourc, cs_agri_pourc, cs_ouvr_pourc, cs_pi_pourc, cs_acce_pourc, cs_cpis_pourc), .after = empl_employeurs_pourc)
+```
 
-modele <- PresF %>%
+
+# Regression sur population entière
+```{r}
+model_ent <- PresF %>%
   # On a pris comme référence pour l'age les 18-30 ans
+  # La référence pour les densité est habitat très dispersé
   # La référence pour les PCS est employés
   # La référence pour les proportions de logement est la résidence principale
-  lm(diff_pourc_macron ~ pourc_macron_17 + libdens + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h, data = .)
-summary(modele)
-
-# ajouter genre + logement + centrer
-
-modele_td <- tidy(modele) |> # Récupère un tableau propre
-  select(term, estimate) |>
-  mutate(
-    term = recode(term,
-      `(Intercept)` = "Constante",
-      pourc_macron_17 = "Proportion de vote Macron en 2017",
-      `libdensCeintures urbaines` = "Ceintures urbaines",
-      `libdensCentres urbains intermédiaires` = "Centres urbains intermédiaires",
-      `libdensGrands centres urbains` = "Grands centres urbains",
-      `libdensPetites villes` = "Petites villes",
-      `libdensRural à habitat dispersé` = "Rural à habitat dispersé",
-      `libdensRural à habitat très dispersé` = "Rural à habitat très dispersé",
-      cs_ouvr_pourc = "Ouvrier.es",
-      cs_cpis_pourc = "Cadres et professions intellectuelles supérieures",
-      cs_pi_pourc = "Professions intermédiaires",
-      cs_agri_pourc = "Agriculteur.ices",
-      cs_acce_pourc = "Chef.fes d'entreprise",
-      Age_q30_40_pourc = "31-40 ans",
-      Age_q40_50_pourc = "41-50 ans",
-      Age_q50_60_pourc = "51-60 ans",
-      Age_q60_70_pourc = "61-70 ans",
-      Age_q70_100_pourc = "71 ans et plus"
-    ),
-    estimate = round(estimate, 3)
+  lm(diff_pourc_macron ~ pourc_macron_17 + prop_h + libdens + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc,
+  data = .,
+  weights = pop,
+  na.action = na.omit
   )
+summary(model_ent)
 
-modele_td |>
-  gt() |>
-  tab_header(title = "Evolution du vote Macron entre 2017 et 2022", subtitle = "Modèle de régression linéaire") |>
-  tab_style(
-    style = cell_text(weight = "bold", font = google_font("Merriweather")),
-    locations = cells_column_labels()
-  ) |>
-  tab_source_note("Source : Insee, recensement 2020 ; Ministère de l'intérieur, résultats des Présidentielles 2017 et 2022") |>
-  tab_source_note("Lecture : En comparaison aux employés, 1 point de pourcentage d'ouvrier.es supplémentaire dans la composition de la population d'une commune augmente de 0,043 point de pourcentage supplémentaire l'évolution du vote Macron entre 2017 et 2022") |>
-  cols_label(
-    term = " ",
-    estimate = "Coefficient"
-  ) |>
-  tab_options(
-    data_row.padding = px(6),
-    heading.align = "left",
-    heading.title.font.size = px(26),
-    heading.subtitle.font.size = px(18),
-    table_body.hlines.width = px(0)
-  ) |>
-  tab_row_group(
-    label = "",
-    rows = 1:2
-  ) |>
-  tab_row_group(
-    label = "Densité",
-    rows = 3:8
-  ) |>
-  tab_row_group(
-    label = "Proportions des CSP (référence : Employés)",
-    rows = 9:13
-  ) |>
-  tab_row_group(
-    label = "Proportions des catégories d'âges (référence : 18-30 ans)",
-    rows = 14:18
-  ) |>
-  row_group_order(
-    groups = c("", "Densité", "Proportions des CSP (référence : Employés)", "Proportions des catégories d'âges (référence : 18-30 ans)")
-  ) |>
-  gtsave("regression_evolution.docx", path = "../03_analyses/")
+# centrer ?
 
-
-
-
-library(gtExtras)
-dt <- modele$coefficients
-library(gt)
-
-gt(dt) %>%
-  tab_header(
-    title = "Modèle de régression linéaire"
-  ) %>%
-  cols_label(
-    term = "Variable",
-    estimate = "Estimation",
-    std.error = "Erreur standard",
-    statistic = "Statistique t",
-    p.value = "p-value"
-  )
+create_coefficient_table(model_ent, title= "Modele")
 ```
 
 # Regression sur les communes rurales
 ```{r}
 
-modele2 <- PresF %>%
+model_rur <- PresF %>%
   filter(libdens %in% c("Rural à habitat dispersé", "Rural à habitat très dispersé", "Bourgs ruraux")) %>%
   # On a pris comme référence pour l'age les 18-30 ans
   # La référence pour les PCS est employés
   # La référence pour les proportions de logement est la résidence principale
-  lm(diff_pourc_macron ~ pourc_macron_17 + libdens + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h, data = .)
-summary(modele)
+  lm(diff_pourc_macron ~ pourc_macron_17 + prop_h + libdens + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc,
+  data = .,
+  weights = pop,
+  na.action = na.omit)
 
+summary(model_rur)
 
-# ajouter genre + logement + centrer
+create_coefficient_table(model_rur, title= "Regression sur les communes rurales", decoup= c(4, 6, 11, 16))
+``` 
 
-modele_td <- tidy(modele2) |> # Récupère un tableau propre
-  select(term, estimate) |>
-  mutate(
-    term = recode(term,
-      `(Intercept)` = "Constante",
-      pourc_macron_17 = "Proportion de vote Macron en 2017",
-      `libdensCeintures urbaines` = "Ceintures urbaines",
-      `libdensCentres urbains intermédiaires` = "Centres urbains intermédiaires",
-      `libdensGrands centres urbains` = "Grands centres urbains",
-      `libdensPetites villes` = "Petites villes",
-      `libdensRural à habitat dispersé` = "Rural à habitat dispersé",
-      `libdensRural à habitat très dispersé` = "Rural à habitat très dispersé",
-      cs_ouvr_pourc = "Ouvrier.es",
-      cs_cpis_pourc = "Cadres et professions intellectuelles supérieures",
-      cs_pi_pourc = "Professions intermédiaires",
-      cs_agri_pourc = "Agriculteur.ices",
-      cs_acce_pourc = "Chef.fes d'entreprise",
-      Age_q30_40_pourc = "31-40 ans",
-      Age_q40_50_pourc = "41-50 ans",
-      Age_q50_60_pourc = "51-60 ans",
-      Age_q60_70_pourc = "61-70 ans",
-      Age_q70_100_pourc = "71 ans et plus"
-    ),
-    estimate = round(estimate, 3)
-  )
+# Regression sur les communes urbaines
+```{r}
 
-modele_td |>
-  gt() |>
-  tab_header(title = "Evolution du vote Macron entre 2017 et 2022", subtitle = "Modèle de régression linéaire") |>
-  tab_style(
-    style = cell_text(weight = "bold", font = google_font("Merriweather")),
-    locations = cells_column_labels()
-  ) |>
-  tab_source_note("Source : Insee, recensement 2020 ; Ministère de l'intérieur, résultats des Présidentielles 2017 et 2022") |>
-  tab_source_note("Lecture : En comparaison aux employés, 1 point de pourcentage d'ouvrier.es supplémentaire dans la composition de la population d'une commune augmente de 0,043 point de pourcentage supplémentaire l'évolution du vote Macron entre 2017 et 2022") |>
-  cols_label(
-    term = " ",
-    estimate = "Coefficient"
-  ) |>
-  tab_options(
-    data_row.padding = px(6),
-    heading.align = "left",
-    heading.title.font.size = px(26),
-    heading.subtitle.font.size = px(18),
-    table_body.hlines.width = px(0)
-  ) |>
-  gtsave("regression_evolution_rural.docx", path = "../03_analyses/")
+model_urb <- PresF %>%
+  filter(!libdens %in% c("Rural à habitat dispersé", "Rural à habitat très dispersé", "Bourgs ruraux")) %>%
+  # On a pris comme référence pour l'age les 18-30 ans
+  # La référence pour les densité est Bourgs ruraux
+  # La référence pour les PCS est employés
+  # La référence pour les proportions de logement est la résidence principale
+  lm(diff_pourc_macron ~ pourc_macron_17 + prop_h + libdens + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc,
+  data = .,
+  weights = pop,
+  na.action = na.omit)
 
+summary(model_urb)
 
-
-
-
-
-
-
+create_coefficient_table(model_urb, title= "Regression sur les communes urbaines", decoup= c(4, 7, 12, 17), ref = c("Bourgs ruraux", "Employés", "18-30 ans", "Résidence principale"))
 ``` 
 
 
-
-
-Regression multiniveau
+# Regression multiniveau
 ```{r}
 library(lme4)
 library(lmerTest)
@@ -212,13 +202,21 @@ PresF$libdens <- factor(PresF$libdens, levels = c("Rural à habitat très disper
 PresF$libdens_group <- ifelse(PresF$libdens %in% c("Rural à habitat très dispersé", "Rural à habitat dispersé", "Bourgs ruraux"),
                              "Rural", "Urbain")
 
-PresF$libdens_group_dec <- ifelse(PresF$libdens %in% c("Ceintures urbaines", "Petites villes", "Grands centres urbains", "Centres urbains intermédiaires"),"Urbain", PresF$libdens)
+PresF %<>% mutate(
+  libdens_group_dec = fct_collapse(libdens,
+                                   Urbain = c("Ceintures urbaines", "Petites villes", "Grands centres urbains", "Centres urbains intermédiaires")))
+
+
+
+
+
+
 
 
 # modele à intercept variable (les deux groupes commencent à des niveaux différents)
 # Permet de voir la différence brute, toutes choses contrôlées égales par ailleurs
 # La meme chose que le modele linéaire avec dens comme variable ?
-model_mult <- lmer(diff_pourc_macron ~ pourc_macron_17 + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h +
+model_mult <- lmer(diff_pourc_macron ~ pourc_macron_17 + prop_h + libdens + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc +
                 (1 | libdens_group), data = PresF)
 
 
@@ -229,22 +227,910 @@ model_mult <- lmer(diff_pourc_macron ~ pourc_macron_17 + cs_ouvr_pourc + cs_cpis
 model_mult2 <- lmer(
   diff_pourc_macron ~ pourc_macron_17+ cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h + (pourc_macron_17 + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h | libdens_group),
   data = PresF,
-  weights = PresF$pop,
+  weights = pop,
   na.action = na.omit
   )
 
 
 # Le même avec les différentes densités rurales : 
-model_mult2 <- lmer(
+model_mult3 <- lmer(
   diff_pourc_macron ~ pourc_macron_17+ cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h + (pourc_macron_17 + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h | libdens_group_dec),
   data = PresF,
-  weights = PresF$pop,
+  weights = pop,
+  na.action = na.omit
+  )
+# Warning :Model failed to converge with 56 negative eigenvalues: -1.3e-01 -1.0e+00 -1.7e+00 -1.9e+00 -2.0e+00 -2.4e+00 -2.5e+00 -2.7e+00 -2.7e+00 -3.1e+00 -3.8e+00 -6.9e+00 -9.6e+00 -1.7e+01 -2.7e+01 -5.0e+01 -6.0e+01 -9.6e+01 -1.5e+02 -1.6e+02 -1.8e+02 -2.2e+02 -2.6e+02 -2.8e+02 -2.8e+02 -3.6e+02 -4.0e+02 -4.5e+02 -5.3e+02 -5.6e+02 -6.3e+02 -6.8e+02 -8.3e+02 -9.9e+02 -1.2e+03 -1.3e+03 -1.5e+03 -1.6e+03 -1.9e+03 -2.1e+03 -2.3e+03 -2.6e+03 -2.8e+03 -3.8e+03 -4.1e+03 -5.5e+03 -6.4e+03 -1.0e+04 -1.9e+04 -2.6e+04 -3.3e+04 -7.2e+04 -1.1e+05 -1.4e+05 -2.9e+05 -7.7e+05
+
+# Le même avec les différentes densités rurales et plus  leger: 
+model_mult4 <- lmer(
+  diff_pourc_macron ~ pourc_macron_17+ cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + log_logoccas_pourc + log_ressecond_pourc + log_vacants_pourc + prop_h + (prop_h | libdens_group_dec),
+  data = PresF,
+  weights = pop,
   na.action = na.omit
   )
 
-summary(model_mult2)
+
+
+
+
+summary(model_mult3)
 ranef(model_mult2)
-# Résumé du modèle
-summary(model_mult)
+
+saveRDS(model_mult, file = "../03_analyses/model_mult.rds")
+saveRDS(model_mult2, file = "../03_analyses/model_mult2.rds")
+
 
 ``` 
+
+# Fonction de présentation
+```{r}
+library(gt)
+
+create_coefficient_table<- function(model, title = "Evolution du vote Macron entre 2017 et 2022", file_path = NULL, decoup = c(4, 10, 15, 20), ref = c("Rural à habitat très dispersé", "Employés", "18-30 ans", "Résidence principale")) {
+  # Récupère un tableau propre
+  model_td <- tidy(model) %>%
+    select("term", "estimate")
+  
+  # Créer le tableau avec gt
+  table <- model_td |>
+    mutate(
+      term = recode(
+        term,
+        `(Intercept)` = "Constante",
+        pourc_macron_17 = "Proportion de vote Macron en 2017",
+        prop_h = "Proportion d'hommes",
+        `libdensCeintures urbaines` = "Ceintures urbaines",
+        `libdensCentres urbains intermédiaires` = "Centres urbains intermédiaires",
+        `libdensGrands centres urbains` = "Grands centres urbains",
+        `libdensPetites villes` = "Petites villes",
+        `libdensRural à habitat dispersé` = "Rural à habitat dispersé",
+        `libdensRural à habitat très dispersé` = "Rural à habitat très dispersé",
+        `libdensBourgs ruraux` = "Bourgs ruraux",
+        cs_ouvr_pourc = "Ouvrier.es",
+        cs_cpis_pourc = "Cadres et professions intellectuelles supérieures",
+        cs_pi_pourc = "Professions intermédiaires",
+        cs_agri_pourc = "Agriculteur.ices",
+        cs_acce_pourc = "Chef.fes d'entreprise",
+        Age_q30_40_pourc = "31-40 ans",
+        Age_q40_50_pourc = "41-50 ans",
+        Age_q50_60_pourc = "51-60 ans",
+        Age_q60_70_pourc = "61-70 ans",
+        Age_q70_100_pourc = "71 ans et plus",
+        log_logoccas_pourc = "Logement occasionnel",
+        log_ressecond_pourc = "Résidence secondaire",
+        log_vacants_pourc = "Logement vacants"
+      ),
+      estimate = round(estimate, 3)
+    )
+  
+  gtable <- table %>%
+    gt() %>%
+    tab_header(title = title, subtitle = "Modèle de régression linéaire") %>%
+    tab_style(
+      style = cell_text(weight = "bold", font = google_font("Merriweather")),
+      locations = cells_column_labels()
+    ) %>%
+    tab_source_note("Source : Insee, recensement 2020 ; ministère de l'Intérieur, résultats des Présidentielles 2017 et 2022") %>%
+    tab_source_note("Lecture : En comparaison aux employés, 1 point de pourcentage d'ouvrier.es supplémentaire dans la composition de la population d'une commune augmente de 0,043 point de pourcentage l'évolution du vote Macron entre 2017 et 2022") %>%
+    cols_label(
+      term = " ",
+      estimate = "Coefficient"
+    ) %>%
+    tab_options(
+      data_row.padding = px(6),
+      heading.align = "left",
+      heading.title.font.size = px(26),
+      heading.subtitle.font.size = px(18),
+      table_body.hlines.width = px(0)
+    ) %>%
+    tab_row_group(
+      label = "",
+      rows = c(1:(decoup[1] - 1))
+    ) %>%
+    tab_row_group(
+      label = paste0("Densité (référence : ", ref[1], ")"),
+      rows = decoup[1]:(decoup[2] - 1)
+    ) %>%
+    tab_row_group(
+      label = paste0("Proportions des CSP (référence : ", ref[2], ")"),
+      rows = decoup[2]:(decoup[3] - 1)
+    ) %>%
+    tab_row_group(
+      label = paste0("Proportions des catégories d'âges (référence : ", ref[3], ")"),
+      rows = decoup[3]:(decoup[4] - 1)
+  ) %>%
+    tab_row_group(
+      label = "Proportions de logements (référence : Résidence principale)",
+      rows = decoup[4]:nrow(model_td)
+    )  %>%
+    row_group_order(
+      groups = c("", 
+                 paste0("Densité (référence : ", ref[1], ")"), 
+                 paste0("Proportions des CSP (référence : ", ref[2], ")"), 
+                 paste0("Proportions des catégories d'âges (référence : ", ref[3], ")"),
+                 paste0("Proportions de logements (référence : ", ref[4], ")")
+                 )
+  )
+  # Ajouter le groupe de lignes pour les densités
+  # Déterminer le chemin de sauvegarde
+  if (is.null(file_path)) {
+    model_name <- deparse(substitute(model))
+    file_path <- here("03_analyses", paste0(model_name, "_",format(Sys.time(), "%d_%b_%Hh_%Mm"), ".docx"))
+  }
+
+  # Sauvegarder le tableau
+  gtsave(gtable, file = file_path)
+
+  return(gtable)
+}
+
+# Fonction pour créer un tableau de coefficients
+create_compar_table <- function(model, title = "Evolution du vote Macron entre 2017 et 2022", file_path = NULL, decoup = c(4, 10, 15, 20), ref = c("Rural à habitat très dispersé", "Employés", "18-30 ans", "Résidence principale")) {
+  # Récupère un tableau propre
+  model_td <- tidy(model) %>%
+    select("term", "estimate")
+  
+  prop = model$model |> 
+    select(c(-`(weights)`)) |> 
+    group_by(libdens) |>
+    summarise_all(mean) |> 
+    t() |> 
+    as.data.frame() |>
+    row_to_names(row_number = 1) |> 
+    rownames_to_column(var = "term")
+  
+  
+  # Créer le tableau avec gt
+  table <- model_td %>%
+    left_join(prop, by = "term") |>
+    add_row(term = "Total effets") %>%
+    mutate(
+      term = recode(
+        term,
+        `(Intercept)` = "Constante",
+        pourc_macron_17 = "Proportion de vote Macron en 2017",
+        prop_h = "Proportion d'hommes",
+        `libdensCeintures urbaines` = "Ceintures urbaines",
+        `libdensCentres urbains intermédiaires` = "Centres urbains intermédiaires",
+        `libdensGrands centres urbains` = "Grands centres urbains",
+        `libdensPetites villes` = "Petites villes",
+        `libdensRural à habitat dispersé` = "Rural à habitat dispersé",
+        `libdensRural à habitat très dispersé` = "Rural à habitat très dispersé",
+        `libdensBourgs ruraux` = "Bourgs ruraux",
+        cs_ouvr_pourc = "Ouvrier.es",
+        cs_cpis_pourc = "Cadres et professions intellectuelles supérieures",
+        cs_pi_pourc = "Professions intermédiaires",
+        cs_agri_pourc = "Agriculteur.ices",
+        cs_acce_pourc = "Chef.fes d'entreprise",
+        Age_q30_40_pourc = "31-40 ans",
+        Age_q40_50_pourc = "41-50 ans",
+        Age_q50_60_pourc = "51-60 ans",
+        Age_q60_70_pourc = "61-70 ans",
+        Age_q70_100_pourc = "71 ans et plus",
+        log_logoccas_pourc = "Logement occasionnel",
+        log_ressecond_pourc = "Résidence secondaire",
+        log_vacants_pourc = "Logement vacants"
+      ),
+      across(-term, ~ as.numeric(gsub(",", ".", .x))),
+      across(!c(term, estimate), ~ .x * estimate, .names = "Effet moyen {.col}"),
+      across(
+        !c(term, estimate) & starts_with("Effet"),
+        ~ ifelse(
+          term == "Total effets",
+          sum(.x, na.rm = TRUE) + ifelse(str_remove(cur_column(), pattern = "Effet moyen ") %in% ref,
+       0,
+       pull(table |>
+              filter(term == str_remove(cur_column(), pattern = "Effet moyen ")) |>
+              select(estimate))),
+          .x
+        )
+      ),
+      across(!c(term, estimate), ~ round(.x, 1)),
+      estimate = round(estimate, 3)
+    )
+  
+  gtable <- table %>%
+    gt() %>%
+    tab_header(title = title, subtitle = "Modèle de régression linéaire") %>%
+    tab_style(
+      style = cell_text(weight = "bold", font = google_font("Merriweather")),
+      locations = cells_column_labels()
+    ) %>%
+    tab_source_note("Source : Insee, recensement 2020 ; ministère de l'Intérieur, résultats des Présidentielles 2017 et 2022") %>%
+    tab_source_note("Lecture : En comparaison aux employés, 1 point de pourcentage d'ouvrier.es supplémentaire dans la composition de la population d'une commune augmente de 0,043 point de pourcentage l'évolution du vote Macron entre 2017 et 2022") %>%
+    cols_label(
+      term = " ",
+      estimate = "Coefficient"
+    ) %>%
+    tab_options(
+      data_row.padding = px(6),
+      heading.align = "left",
+      heading.title.font.size = px(26),
+      heading.subtitle.font.size = px(18),
+      table_body.hlines.width = px(0)
+    ) %>%
+    tab_row_group(
+      label = "",
+      rows = c(1:(decoup[1] - 1))
+    ) %>%
+    tab_row_group(
+      label = paste0("Densité (référence : ", ref[1], ")"),
+      rows = decoup[1]:(decoup[2] - 1)
+    ) %>%
+    tab_row_group(
+      label = paste0("Proportions des CSP (référence : ", ref[2], ")"),
+      rows = decoup[2]:(decoup[3] - 1)
+    ) %>%
+    tab_row_group(
+      label = paste0("Proportions des catégories d'âges (référence : ", ref[3], ")"),
+      rows = decoup[3]:(decoup[4] - 1)
+  ) %>%
+    tab_row_group(
+      label = "Proportions de logements (référence : Résidence principale)",
+      rows = decoup[4]:nrow(model_td)
+    )  %>%
+    row_group_order(
+      groups = c("", 
+                 paste0("Densité (référence : ", ref[1], ")"), 
+                 paste0("Proportions des CSP (référence : ", ref[2], ")"), 
+                 paste0("Proportions des catégories d'âges (référence : ", ref[3], ")"),
+                 paste0("Proportions de logements (référence : ", ref[4], ")")
+                 )
+  ) |>
+  tab_spanner(
+    label = "Répartition",
+    columns = names(table) %>%
+  .[! . %in% c("term", "estimate") & !str_detect(., "^Effet")]
+  ) |> 
+  tab_spanner(
+    label = "Effet moyen",
+    columns = names(table) %>%
+  .[str_detect(., "^Effet")]
+      )
+  # Ajouter le groupe de lignes pour les densités
+  # Déterminer le chemin de sauvegarde
+  if (is.null(file_path)) {
+    model_name <- deparse(substitute(model))
+    file_path <- here("03_analyses", paste0(model_name, "_",format(Sys.time(), "%d_%b_%Hh_%Mm"), ".docx"))
+  }
+
+  # Sauvegarder le tableau
+  gtsave(gtable, file = file_path)
+
+  return(gtable)
+}
+
+create_coefficient_table(modele, title= "Modele")
+
+
+
+```
+
+
+
+
+
+
+
+
+# Regression immi
+
+
+# Regression sur population entière
+```{r}
+model_ent <- PresF %>%
+  # On a pris comme référence pour l'age les 18-30 ans
+  # La référence pour les densité est habitat très dispersé
+  # La référence pour les PCS est employés
+  # La référence pour les proportions de logement est la résidence principale
+  # La référence pour les proportions d'emplois est les stables
+  lm(diff_pourc_macron ~ pourc_macron_17 + prop_h + immi_pourc + libdens + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + empl_precaire_pourc  + empl_indep_pourc + empl_employeurs_pourc,
+  data = .,
+  weights = pop,
+  na.action = na.omit
+  )
+
+summary(model_ent)
+
+# centrer ?
+
+create_coefficient_table(model_ent, title= "Modele")
+create_compar_table(model_ent, title= "Modele", ref = c("Rural à habitat très dispersé", "Employés", "18-30 ans", "Stable"))
+
+
+model_inter <- PresF %>%
+  # On a pris comme référence pour l'age les 18-30 ans
+  # La référence pour les densité est habitat très dispersé
+  # La référence pour les PCS est employés
+  # La référence pour les proportions de logement est la résidence principale
+  # La référence pour les proportions d'emplois est les stables
+  lm(diff_pourc_macron ~ pourc_macron_17*libdens_group_dec + prop_h*libdens_group_dec + immi_pourc*libdens_group_dec + cs_ouvr_pourc*libdens_group_dec + cs_cpis_pourc*libdens_group_dec + cs_pi_pourc*libdens_group_dec + cs_agri_pourc*libdens_group_dec + cs_acce_pourc*libdens_group_dec + Age_q30_40_pourc*libdens_group_dec + Age_q40_50_pourc*libdens_group_dec + Age_q50_60_pourc*libdens_group_dec + Age_q60_70_pourc*libdens_group_dec + Age_q70_100_pourc*libdens_group_dec + empl_precaire_pourc*libdens_group_dec  + empl_indep_pourc*libdens_group_dec + empl_employeurs_pourc*libdens_group_dec,
+  data = .,
+  weights = pop,
+  na.action = na.omit
+  )
+summary(model_inter)
+create_coefficient_table(model_inter, title= "Modele")
+
+model_td<- tidy(model_inter) %>%
+    select("term", "estimate")
+for( x in c("Urbain", "Rural à habitat dispersé", "Bourgs ruraux")) {
+  model_td_urbain <- model_td %>% 
+    filter(str_detect(term, x)) |> 
+    tail(-1) |>
+    mutate(term = str_remove(term, paste0("libdens_group_dec", x)),
+           term = str_remove(term, ":")
+           ) |> 
+    add_row(term = "Densité", estimate = model_td |> filter(str_detect(term, x)) |> 
+    head(1) |> pull()) %>%
+    rename_with(~x, .cols = "estimate") 
+  
+  assign(paste0("model_td_", x), model_td_urbain)
+}
+
+model_td_tot <-model_td |> 
+  head(20) |> 
+  add_row(term = "Densité", estimate = 0) |> 
+  left_join(model_td_Urbain, by = "term") |>
+  left_join(`model_td_Rural à habitat dispersé`, by = "term") |>
+  left_join(`model_td_Bourgs ruraux`, by = "term") |> 
+  mutate(
+    Urbain = Urbain + estimate,
+    `Rural à habitat dispersé` = `Rural à habitat dispersé` + estimate,
+    `Bourgs ruraux` = `Bourgs ruraux` + estimate
+  ) |> 
+  filter(!str_detect(term, "libdens")) |>
+  rename("Rural à habitat trés dispersé" = estimate) |>
+  relocate(Urbain, .after = `Bourgs ruraux`)
+
+
+
+library(gt)
+
+
+
+
+  # Créer le tableau avec gt
+  table <- model_td_tot |>
+    mutate(
+      term = recode(
+        term,
+        `(Intercept)` = "Constante",
+        pourc_macron_17 = "Proportion de vote Macron en 2017",
+        prop_h = "Proportion d'hommes",
+        immi_pourc = "Proportion d'immigré.es",
+        `libdensCeintures urbaines` = "Ceintures urbaines",
+        `libdensCentres urbains intermédiaires` = "Centres urbains intermédiaires",
+        `libdensGrands centres urbains` = "Grands centres urbains",
+        `libdensPetites villes` = "Petites villes",
+        `libdensRural à habitat dispersé` = "Rural à habitat dispersé",
+        `libdensRural à habitat très dispersé` = "Rural à habitat très dispersé",
+        `libdensBourgs ruraux` = "Bourgs ruraux",
+        cs_ouvr_pourc = "Ouvrier.es",
+        cs_cpis_pourc = "Cadres et professions intellectuelles supérieures",
+        cs_pi_pourc = "Professions intermédiaires",
+        cs_agri_pourc = "Agriculteur.ices",
+        cs_acce_pourc = "Chef.fes d'entreprise",
+        Age_q30_40_pourc = "31-40 ans",
+        Age_q40_50_pourc = "41-50 ans",
+        Age_q50_60_pourc = "51-60 ans",
+        Age_q60_70_pourc = "61-70 ans",
+        Age_q70_100_pourc = "71 ans et plus",
+        log_logoccas_pourc = "Logement occasionnel",
+        log_ressecond_pourc = "Résidence secondaire",
+        log_vacants_pourc = "Logement vacants",
+        empl_precaire_pourc = "Emploi précaire",
+        empl_indep_pourc = "Emploi indépendant",
+        empl_employeurs_pourc = "Emploi employeur"
+      ),
+      across(everything() & !term, ~ round(.x, 3)),
+      term = factor(term,levels = c(
+        "Constante",
+        "Densité",
+        "Proportion de vote Macron en 2017",
+        "Proportion d'hommes",
+        "Proportion d'immigré.es",
+        "Agriculteur.ices",
+        "Ouvrier.es",
+        "Professions intermédiaires",
+        "Chef.fes d'entreprise",
+        "Cadres et professions intellectuelles supérieures",
+        "31-40 ans",
+        "41-50 ans",
+        "51-60 ans",
+        "61-70 ans",
+        "71 ans et plus",
+        "Emploi précaire",
+        "Emploi indépendant",
+        "Emploi employeur"
+      ))) |> 
+    arrange(term)
+  
+  gtable <- table %>%
+    gt() %>%
+    tab_header(title = "TITRE", subtitle = "Modèle de régression linéaire") %>%
+    tab_style(
+      style = cell_text(weight = "bold", font = google_font("Merriweather")),
+      locations = cells_column_labels()
+    ) %>%
+    tab_source_note("Source : Insee, recensement 2020 ; ministère de l'Intérieur, résultats des Présidentielles 2017 et 2022") %>%
+    tab_source_note("Lecture : En comparaison aux employés, 1 point de pourcentage d'ouvrier.es supplémentaire dans la composition de la population d'une commune augmente de 0,043 point de pourcentage l'évolution du vote Macron entre 2017 et 2022") %>%
+    cols_label(
+      term = " "
+    ) %>%
+    tab_options(
+      data_row.padding = px(6),
+      heading.align = "left",
+      heading.title.font.size = px(26),
+      heading.subtitle.font.size = px(18),
+      table_body.hlines.width = px(0)
+    ) %>%
+    tab_row_group(
+      label = "",
+      rows = 1:5
+    ) %>%
+    tab_row_group(
+      label = paste0("Proportions des CSP (référence : Employés)"), 
+
+      rows = 6:10
+    ) %>%
+    tab_row_group(
+      label = paste0("Proportions des catégories d'âges (référence : 18-30 ans)"),
+      rows = 11:15
+    ) %>%
+    tab_row_group(
+      label = paste0("Proportions des types d'emploi (référence : Stable)"),
+      rows = 16:18
+    ) %>%
+    row_group_order(
+      groups = c("", 
+                 paste0("Proportions des CSP (référence : Employés)"), 
+                 paste0("Proportions des catégories d'âges (référence : 18-30 ans)"),
+                 paste0("Proportions des types d'emploi (référence : Stable)")
+                 )
+  )
+
+
+
+
+
+
+gtable
+gtsave(gtable, file = "table_interactions.docx")
+install.packages("patchwork")
+
+model_inter |> broom.helpers::plot_marginal_predictions(type = "response") |> patchwork::wrap_plots(ncol = 1) &
+  scale_y_continuous(
+    labels = scales::label_percent()
+  )
+Urbain
+    `Rural à habitat dispersé` 
+    `Bourgs ruraux`
+
+
+
+table |> 
+  filter(term %in% c("31-40 ans", "41-50 ans", "51-60 ans", "61-70 ans", "71 ans et plus")) |>
+  add_row(
+    term = "18-30 ans",
+    `Rural à habitat trés dispersé` = 0,
+    `Rural à habitat dispersé` = 0,
+    `Bourgs ruraux` = 0,
+    Urbain = 0
+  ) |>
+  pivot_longer(cols = c("Urbain", "Rural à habitat dispersé", "Bourgs ruraux", "Rural à habitat trés dispersé"), names_to = "libdens_group_dec", values_to = "estimate") |>
+  mutate(libdens_group_dec = factor(libdens_group_dec, levels = c(
+    "Rural à habitat trés dispersé",
+    "Rural à habitat dispersé",
+    "Bourgs ruraux",
+    "Urbain"
+  ))) |>
+  ggplot(aes(x = term, y = estimate, color = libdens_group_dec, group = libdens_group_dec)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    title = "Effets des catégories d'âges sur l'évolution du vote Macron entre 2017 et 2022",
+    x = "Catégories d'âges",
+    y = "Coefficient",
+    caption = "Source : Insee, recensement 2020 ; ministère de l'Intérieur, résultats des Présidentielles 2017 et 2022"
+  ) + #Chnage l'ordre de la légende
+  
+  scale_color_manual(values = c("Urbain" = "#E41A1C", "Rural à habitat dispersé" = "#377EB8", "Bourgs ruraux" = "#4DAF4A", "Rural à habitat trés dispersé" = "#FF7F00")) +
+  theme_minimal() +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "bottom"
+  )
+
+
+
+table |> 
+  filter(term %in% c(
+        "Agriculteur.ices",
+        "Ouvrier.es",
+        "Professions intermédiaires",
+        "Chef.fes d'entreprise",
+        "Cadres et professions intellectuelles supérieures")) |>
+  add_row(
+    term = "Employés",
+    `Rural à habitat trés dispersé` = 0,
+    `Rural à habitat dispersé` = 0,
+    `Bourgs ruraux` = 0,
+    Urbain = 0
+  ) |>
+  pivot_longer(cols = c("Urbain", "Rural à habitat dispersé", "Bourgs ruraux", "Rural à habitat trés dispersé"), names_to = "libdens_group_dec", values_to = "estimate") |>
+  mutate(libdens_group_dec = factor(libdens_group_dec, levels = c(
+    "Rural à habitat trés dispersé",
+    "Rural à habitat dispersé",
+    "Bourgs ruraux",
+    "Urbain"
+  ))) |>
+  ggplot(aes(x = term, y = estimate, color = libdens_group_dec, group = libdens_group_dec)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    title = "Effets des CSP sur l'évolution du vote Macron entre 2017 et 2022",
+    x = "CSP",
+    y = "Coefficient",
+    caption = "Source : Insee, recensement 2020 ; ministère de l'Intérieur, résultats des Présidentielles 2017 et 2022"
+  ) + #Chnage l'ordre de la légende
+  scale_x_discrete(limits = c(
+    "Agriculteur.ices",
+    "Ouvrier.es",
+    "Employés",
+    "Professions intermédiaires",
+    "Chef.fes d'entreprise",
+    "Cadres et professions intellectuelles supérieures"
+  ),
+  labels = label_wrap(10)) +
+  scale_color_manual(values = c("Urbain" = "#E41A1C", "Rural à habitat dispersé" = "#377EB8", "Bourgs ruraux" = "#4DAF4A", "Rural à habitat trés dispersé" = "#FF7F00")) +
+  theme_minimal() +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "bottom"
+  )
+
+
+
+  
+  ggsave("effets_CSP.png", dpi = 300, width = 10, height = 6)
+
+
+
+
+
+
+
+
+
+
+
+
+library(jtools)
+summ(model_ent, confint = FALSE, center = TRUE, digits = 3, pvals = FALSE, ci.width = FALSE)
+effect_plot(model_ent, pred = cs_ouvr_pourc, interval = TRUE, plot.points = TRUE, 
+            jitter = 0.05)
+
+plot_summs(model_ent)
+Test <-plot_summs(model_urb, model_rur, model_ent, 
+           model.names = c("Urbain", "Rural","Entier"),
+           ci_level = 0.0001,
+           legend_title = "Modèles"
+           ) +
+  scale_y_discrete(labels = c(
+    "Age_q70_100_pourc" = "70 ans et plus",
+    "Age_q60_70_pourc" = "60-70 ans",
+    "Age_q50_60_pourc" = "50-60 ans",
+    "Age_q40_50_pourc" = "40-50 ans",
+    "Age_q30_40_pourc" = "30-40 ans",
+    "cs_cpis_pourc" = "Cadres et professions intellectuelles supérieures",
+    "cs_acce_pourc" = "Chef.fes d'entreprise",
+    "cs_pi_pourc" = "Professions intermédiaires",
+    "cs_ouvr_pourc" = "Ouvrier.es",
+    "cs_agri_pourc" = "Agriculteur.ices",
+    "empl_employeurs_pourc" = "Employeur", 
+    "empl_indep_pourc" = "Indépendant",
+    "empl_precaire_pourc" = "Précaire",
+    "libdensGrands centres urbains" = "Grands centres urbains",
+    "libdensCentres urbains intermédiaires" = "Centres urbains intermédiaires",
+    "libdensCeintures urbaines" = "Ceintures urbaines",
+    "libdensBourgs ruraux" = "Bourgs ruraux",
+    "libdensRural à habitat dispersé" = "Rural à habitat dispersé",
+    "immi_pourc" = "Proportion d'immigré.es",
+    "prop_h" = "Proportion d'hommes",
+    "pourc_macron_17" = "Proportion de vote Macron en 2017"
+  ),
+  limits = c(
+    "Age_q70_100_pourc", "Age_q60_70_pourc", "Age_q50_60_pourc", "Age_q40_50_pourc", "Age_q30_40_pourc", "cs_cpis_pourc", "cs_acce_pourc", "cs_pi_pourc", "cs_ouvr_pourc", "cs_agri_pourc", "empl_employeurs_pourc", "empl_indep_pourc", "empl_precaire_pourc", "libdensGrands centres urbains", "libdensCentres urbains intermédiaires", "libdensCeintures urbaines", "libdensBourgs ruraux", "libdensRural à habitat dispersé", "immi_pourc", "prop_h", "pourc_macron_17")) +
+  labs(title = "Comparaison des modèles Rural et Urbain", subtitle = "Modèles linéaires de l'évolution du vote Macron entre 2017 et 2022")+
+  ylab("Variables explicatives") +
+  xlab("Point de pourcentage par unité d'augmentation")
+ ggsave(Test, file = here("03_analyses", "Test.png"), dpi = 300, width = 10, height = 6)
+Test
+```
+
+# Regression sur les communes rurales
+```{r}
+
+model_rur <- PresF %>%
+  filter(libdens %in% c("Rural à habitat dispersé", "Rural à habitat très dispersé", "Bourgs ruraux")) %>%
+  # On a pris comme référence pour l'age les 18-30 ans
+  # La référence pour les PCS est employés
+  # La référence pour les proportions de logement est la résidence principale
+  lm(diff_pourc_macron ~ pourc_macron_17 + prop_h + immi_pourc + libdens + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + empl_precaire_pourc  + empl_indep_pourc + empl_employeurs_pourc,
+  data = .,
+  weights = pop,
+  na.action = na.omit
+  )
+
+summary(model_rur)
+
+create_coefficient_table(model_rur, title= "Regression sur les communes rurales", decoup= c(5, 7, 12, 17))
+``` 
+
+
+# Regression sur les communes urbaines
+```{r}
+
+model_urb <- PresF %>%
+  filter(!libdens %in% c("Rural à habitat dispersé", "Rural à habitat très dispersé", "Bourgs ruraux")) %>%
+  # On a pris comme référence pour l'age les 18-30 ans
+  # La référence pour les densité est Bourgs ruraux
+  # La référence pour les PCS est employés
+  # La référence pour les proportions de logement est la résidence principale
+  lm(diff_pourc_macron ~ pourc_macron_17 + prop_h + immi_pourc + libdens + cs_ouvr_pourc + cs_cpis_pourc + cs_pi_pourc + cs_agri_pourc + cs_acce_pourc + Age_q30_40_pourc + Age_q40_50_pourc + Age_q50_60_pourc + Age_q60_70_pourc + Age_q70_100_pourc + empl_precaire_pourc  + empl_indep_pourc + empl_employeurs_pourc,
+  data = .,
+  weights = pop,
+  na.action = na.omit
+  )
+
+summary(model_urb)
+
+create_coefficient_table(model_urb, title= "Regression sur les communes urbaines", decoup= c(5, 8, 13, 18), ref = c("Bourgs ruraux", "Employés", "18-30 ans", "Stable"))
+
+create_compar_table(model_urb, title= "Regression sur les communes urbaines", decoup= c(4, 7, 12, 17), ref = c("Bourgs ruraux", "Employés", "18-30 ans", "Résidence principale"))
+``` 
+
+
+
+# Fonction de présentation
+```{r}
+library(gt)
+
+create_coefficient_table<- function(model, title = "Evolution du vote Macron entre 2017 et 2022", file_path = NULL, decoup = c(5, 11, 16,21), ref = c("Rural à habitat très dispersé", "Employés", "18-30 ans", "Résidence principale")) {
+  # Récupère un tableau propre
+  model_td <- tidy(model) %>%
+    select("term", "estimate")
+  
+  # Créer le tableau avec gt
+  table <- model_td_tot |>
+    mutate(
+      term = recode(
+        term,
+        `(Intercept)` = "Constante",
+        pourc_macron_17 = "Proportion de vote Macron en 2017",
+        prop_h = "Proportion d'hommes",
+        immi_pourc = "Proportion d'immigré.es",
+        `libdensCeintures urbaines` = "Ceintures urbaines",
+        `libdensCentres urbains intermédiaires` = "Centres urbains intermédiaires",
+        `libdensGrands centres urbains` = "Grands centres urbains",
+        `libdensPetites villes` = "Petites villes",
+        `libdensRural à habitat dispersé` = "Rural à habitat dispersé",
+        `libdensRural à habitat très dispersé` = "Rural à habitat très dispersé",
+        `libdensBourgs ruraux` = "Bourgs ruraux",
+        cs_ouvr_pourc = "Ouvrier.es",
+        cs_cpis_pourc = "Cadres et professions intellectuelles supérieures",
+        cs_pi_pourc = "Professions intermédiaires",
+        cs_agri_pourc = "Agriculteur.ices",
+        cs_acce_pourc = "Chef.fes d'entreprise",
+        Age_q30_40_pourc = "31-40 ans",
+        Age_q40_50_pourc = "41-50 ans",
+        Age_q50_60_pourc = "51-60 ans",
+        Age_q60_70_pourc = "61-70 ans",
+        Age_q70_100_pourc = "71 ans et plus",
+        log_logoccas_pourc = "Logement occasionnel",
+        log_ressecond_pourc = "Résidence secondaire",
+        log_vacants_pourc = "Logement vacants"
+      ),
+      estimate = round(estimate, 3)
+    )
+  
+  gtable <- table %>%
+    gt() %>%
+    tab_header(title = title, subtitle = "Modèle de régression linéaire") %>%
+    tab_style(
+      style = cell_text(weight = "bold", font = google_font("Merriweather")),
+      locations = cells_column_labels()
+    ) %>%
+    tab_source_note("Source : Insee, recensement 2020 ; ministère de l'Intérieur, résultats des Présidentielles 2017 et 2022") %>%
+    tab_source_note("Lecture : En comparaison aux employés, 1 point de pourcentage d'ouvrier.es supplémentaire dans la composition de la population d'une commune augmente de 0,043 point de pourcentage l'évolution du vote Macron entre 2017 et 2022") %>%
+    cols_label(
+      term = " ",
+      estimate = "Coefficient"
+    ) %>%
+    tab_options(
+      data_row.padding = px(6),
+      heading.align = "left",
+      heading.title.font.size = px(26),
+      heading.subtitle.font.size = px(18),
+      table_body.hlines.width = px(0)
+    ) %>%
+    tab_row_group(
+      label = "",
+      rows = c(1:(decoup[1] - 1))
+    ) %>%
+    tab_row_group(
+      label = paste0("Densité (référence : ", ref[1], ")"),
+      rows = decoup[1]:(decoup[2] - 1)
+    ) %>%
+    tab_row_group(
+      label = paste0("Proportions des CSP (référence : ", ref[2], ")"),
+      rows = decoup[2]:(decoup[3] - 1)
+    ) %>%
+    tab_row_group(
+      label = paste0("Proportions des catégories d'âges (référence : ", ref[3], ")"),
+      rows = decoup[3]:(decoup[4] - 1)) %>%
+    tab_row_group(
+      label = paste0("Proportions des types d'emploi (référence : ", ref[4], ")"),
+      rows = decoup[4]:nrow(model_td) ) %>%
+    row_group_order(
+      groups = c("", 
+                 paste0("Densité (référence : ", ref[1], ")"), 
+                 paste0("Proportions des CSP (référence : ", ref[2], ")"), 
+                 paste0("Proportions des catégories d'âges (référence : ", ref[3], ")"),
+                 paste0("Proportions des types d'emploi (référence : ", ref[4], ")")
+                 )
+  )
+  # Ajouter le groupe de lignes pour les densités
+  # Déterminer le chemin de sauvegarde
+  if (is.null(file_path)) {
+    model_name <- deparse(substitute(model))
+    file_path <- here("03_analyses", paste0(model_name, "_",format(Sys.time(), "%d_%b_%Hh_%Mm"), ".docx"))
+  }
+
+  # Sauvegarder le tableau
+  gtsave(gtable, file = file_path)
+
+  return(gtable)
+}
+
+# Fonction pour créer un tableau de coefficients
+create_compar_table <- function(model, title = "Evolution du vote Macron entre 2017 et 2022", file_path = NULL, decoup = c(5, 11, 16), ref = c("Rural à habitat très dispersé", "Employés", "18-30 ans", "Résidence principale")) {
+  # Récupère un tableau propre
+  model_td <- tidy(model) %>%
+    select("term", "estimate")
+  
+  prop = model$model |> 
+    select(c(-`(weights)`)) |> 
+    group_by(libdens) |>
+    summarise_all(mean) |> 
+    t() |> 
+    as.data.frame() |>
+    row_to_names(row_number = 1) |> 
+    rownames_to_column(var = "term")
+  
+  
+  # Créer le tableau avec gt
+  table <- model_td %>%
+    left_join(prop, by = "term") |>
+    add_row(term = "Total effets") %>%
+    mutate(
+      term = recode(
+        term,
+        `(Intercept)` = "Constante",
+        pourc_macron_17 = "Proportion de vote Macron en 2017",
+        prop_h = "Proportion d'hommes",
+        immi_pourc = "Proportion d'immigré.es",
+        `libdensCeintures urbaines` = "Ceintures urbaines",
+        `libdensCentres urbains intermédiaires` = "Centres urbains intermédiaires",
+        `libdensGrands centres urbains` = "Grands centres urbains",
+        `libdensPetites villes` = "Petites villes",
+        `libdensRural à habitat dispersé` = "Rural à habitat dispersé",
+        `libdensRural à habitat très dispersé` = "Rural à habitat très dispersé",
+        `libdensBourgs ruraux` = "Bourgs ruraux",
+        cs_ouvr_pourc = "Ouvrier.es",
+        cs_cpis_pourc = "Cadres et professions intellectuelles supérieures",
+        cs_pi_pourc = "Professions intermédiaires",
+        cs_agri_pourc = "Agriculteur.ices",
+        cs_acce_pourc = "Chef.fes d'entreprise",
+        Age_q30_40_pourc = "31-40 ans",
+        Age_q40_50_pourc = "41-50 ans",
+        Age_q50_60_pourc = "51-60 ans",
+        Age_q60_70_pourc = "61-70 ans",
+        Age_q70_100_pourc = "71 ans et plus",
+        log_logoccas_pourc = "Logement occasionnel",
+        log_ressecond_pourc = "Résidence secondaire",
+        log_vacants_pourc = "Logement vacants"
+      ),
+      across(-term, ~ as.numeric(gsub(",", ".", .x))),
+      across(!c(term, estimate), ~ .x * estimate, .names = "Effet moyen {.col}"),
+      across(
+        !c(term, estimate) & starts_with("Effet"),
+        ~ ifelse(
+          term == "Total effets",
+          sum(.x, na.rm = TRUE) + ifelse(str_remove(cur_column(), pattern = "Effet moyen ") %in% ref,
+       0,
+       pull(table |>
+              filter(term == str_remove(cur_column(), pattern = "Effet moyen ")) |>
+              select(estimate))),
+          .x
+        )
+      ),
+      across(!c(term, estimate), ~ round(.x, 1)),
+      estimate = round(estimate, 3)
+    )
+  
+  gtable <- table %>%
+    gt() %>%
+    tab_header(title = title, subtitle = "Modèle de régression linéaire") %>%
+    tab_style(
+      style = cell_text(weight = "bold", font = google_font("Merriweather")),
+      locations = cells_column_labels()
+    ) %>%
+    tab_source_note("Source : Insee, recensement 2020 ; ministère de l'Intérieur, résultats des Présidentielles 2017 et 2022") %>%
+    tab_source_note("Lecture : En comparaison aux employés, 1 point de pourcentage d'ouvrier.es supplémentaire dans la composition de la population d'une commune augmente de 0,043 point de pourcentage l'évolution du vote Macron entre 2017 et 2022") %>%
+    cols_label(
+      term = " ",
+      estimate = "Coefficient"
+    ) %>%
+    tab_options(
+      data_row.padding = px(6),
+      heading.align = "left",
+      heading.title.font.size = px(26),
+      heading.subtitle.font.size = px(18),
+      table_body.hlines.width = px(0)
+    ) %>%
+    tab_row_group(
+      label = "",
+      rows = c(1:(decoup[1] - 1))
+    ) %>%
+    tab_row_group(
+      label = paste0("Densité (référence : ", ref[1], ")"),
+      rows = decoup[1]:(decoup[2] - 1)
+    ) %>%
+    tab_row_group(
+      label = paste0("Proportions des CSP (référence : ", ref[2], ")"),
+      rows = decoup[2]:(decoup[3] - 1)
+    ) %>%
+    tab_row_group(
+      label = paste0("Proportions des catégories d'âges (référence : ", ref[3], ")"),
+      rows = decoup[3]:nrow(model_td)
+  ) %>%
+    row_group_order(
+      groups = c("", 
+                 paste0("Densité (référence : ", ref[1], ")"), 
+                 paste0("Proportions des CSP (référence : ", ref[2], ")"), 
+                 paste0("Proportions des catégories d'âges (référence : ", ref[3], ")")
+                 )
+  ) |>
+  tab_spanner(
+    label = "Répartition",
+    columns = names(table) %>%
+  .[! . %in% c("term", "estimate") & !str_detect(., "^Effet")]
+  ) |> 
+  tab_spanner(
+    label = "Effet moyen",
+    columns = names(table) %>%
+  .[str_detect(., "^Effet")]
+      )
+  # Ajouter le groupe de lignes pour les densités
+  # Déterminer le chemin de sauvegarde
+  if (is.null(file_path)) {
+    model_name <- deparse(substitute(model))
+    file_path <- here("03_analyses", paste0(model_name, "_",format(Sys.time(), "%d_%b_%Hh_%Mm"), ".docx"))
+  }
+
+  # Sauvegarder le tableau
+  gtsave(gtable, file = file_path)
+
+  return(gtable)
+}
+
+create_coefficient_table(modele, title= "Modele")
+
+
+
+```
+
+
+

@@ -869,7 +869,7 @@ if (!file.exists("01_data/Présidentielles 2017-2022/Présidentielles&Recensemen
                  by.x = "DepCom",
                  by.y = "DepCom",
                  all.x = TRUE) |>
-    filter(!Code_département %in% c(971, 972, 973, 974, 976, 988, 987, 975, 986)) # On enlève les départements d'outre-mer
+    filter(!Code_département %in% c(971, 972, 973, 974, 976, 988, 987, 975, 986, "2A", "2B")) # On enlève les départements d'outre-mer
   
   # Nettoyage ----
   

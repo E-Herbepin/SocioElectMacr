@@ -182,6 +182,34 @@ ear20_cs29 <- census20_emp3 |>
   select(CODGEO, LIBGEO, starts_with("cs_")) |> 
   rename_all(tolower)
 
+
+
+
+
+# DIPLOME ----
+# DIPL19 
+# A : Aucun diplôme ou certificat d'études primaires
+# B : BEPC, brevet des collèges, DNB
+# C : CAP, BEP ou équivalent
+# D : Baccalauréat, brevet professionnel ou équivalent
+# E: Diplôme de l'enseignement supérieur de niveau bac + 2
+# F: Diplôme de l'enseignement supérieur de niveau bac + 3 ou bac + 4
+# G: Diplôme de l'enseignement supérieur de niveau bac + 5 ou plus
+
+
+ear20_dipl <- census20_for2 |> 
+  mutate(
+    dipl_a = rowSums(across(contains("DIPL_19A")), na.rm = TRUE),
+    dipl_b = rowSums(across(contains("DIPL_19B")), na.rm = TRUE),
+    dipl_c = rowSums(across(contains("DIPL_19C")), na.rm = TRUE),
+    dipl_d = rowSums(across(contains("DIPL_19D")), na.rm = TRUE),
+    dipl_e = rowSums(across(contains("DIPL_19E")), na.rm = TRUE),
+    dipl_f = rowSums(across(contains("DIPL_19F")), na.rm = TRUE),
+    dipl_g = rowSums(across(contains("DIPL_19G")), na.rm = TRUE)
+  ) |> 
+  select(CODGEO, LIBGEO, starts_with("dipl")) |> 
+  rename_all(tolower)
+
 # TYPES DE LOGEMENTS ----
 # LOG1 --> CATL
 
@@ -352,6 +380,7 @@ communes <- ear20_emploi |>
   left_join(ear20_immi) |> 
   left_join(ear20_natio) |> 
   left_join(ear20_age) |>
+  left_join(ear20_dipl) |>
   left_join(age) |>
   left_join(sexe) |>
   left_join(densite_communes)
