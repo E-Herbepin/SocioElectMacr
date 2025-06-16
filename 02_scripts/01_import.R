@@ -968,39 +968,39 @@ PresF <- PresF %>%
 
 # Parmi les exprimés.
 
-PresF <- PresF %>%
-  mutate(diff_pourc_macron = pourc_macron_22 - pourc_macron_17)
+#PresF <- PresF %>%
+  # mutate(diff_pourc_macron = pourc_macron_22 - pourc_macron_17)
 
 # Parmi les inscrits.
 
-PresF <- PresF %>% 
-  mutate(diff_pourc_macron_inscr = pourc_macron_22_inscr - pourc_macron_17_inscr)
+#PresF <- PresF %>% 
+#mutate(diff_pourc_macron_inscr = pourc_macron_22_inscr - pourc_macron_17_inscr)
 
 ## Républicains
 
 # Parmi les exprimés
 
-PresF <- PresF %>%
-  mutate(diff_pourc_repu = pourc_repu_22 - pourc_repu_17)
+#PresF <- PresF %>%
+  # mutate(diff_pourc_repu = pourc_repu_22 - pourc_repu_17)
 
 ## Le Pen
 
 # Parmi les exprimés
 
-PresF <- PresF %>%
-  mutate(diff_pourc_lepen = pourc_lepen_22 - pourc_lepen_17)
+#PresF <- PresF %>%
+  # mutate(diff_pourc_lepen = pourc_lepen_22 - pourc_lepen_17)
 
 ## Parti socialiste
 
 # Parmi les exprimés
 
-PresF <- PresF %>%
-  mutate(diff_pourc_ps = pourc_ps_22 - pourc_ps_17)
+#PresF <- PresF %>%
+  # mutate(diff_pourc_ps = pourc_ps_22 - pourc_ps_17)
 
 ## Mélenchon
 
-PresF <- PresF %>%
-  mutate(diff_pourc_melenchon = pourc_melenchon_22 - pourc_melenchon_17)
+#PresF <- PresF %>%
+#mutate(diff_pourc_melenchon = pourc_melenchon_22 - pourc_melenchon_17)
 
 # charger la géométrie avec sf
 comsf <- st_read(dsn = "01_data//geoloc/geometry/COMMUNE.shp",
@@ -1019,4 +1019,3 @@ comsf <- st_transform(comsf, crs = 2154)
 comsf <- left_join(PresF, comsf, by = "DepCom")
 #comsf<- comsf %>% filter (Nb_17_Votants >= 15)
 comsf<-st_sf(comsf)
-
