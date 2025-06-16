@@ -39,7 +39,7 @@ libdens_palette <- c(
 
 ## Début de l'enregistrement
 
-png("densité.png", width = 12, height = 8, units = "in", res = 300)
+png("densité.png", width = 14, height = 12, units = "in", res = 300)
 
 # Création de la carte univariée pour libdens
 mf_map(comsf,
@@ -53,7 +53,7 @@ mf_map(comsf,
 mf_legend(type = "typo", val = c("Grands centres urbains", "Centres urbains intermédiaires", "Ceintures urbaines", "Petites villes", "Bourgs ruraux","Rural à habitat dispersé", "Rural à habitat très dispersé"), pal = libdens_palette, pos = "left", title = "Catégories de densité", size = 1.3)
 
 # Ajouter un titre à la carte
-mf_title("Carte de la densité de population par commune")
+#mf_title("Carte de la densité de population par commune")
 
 # Ajouter l'échelle
 mf_scale(cex = 1)
@@ -62,7 +62,7 @@ mf_scale(cex = 1)
 mf_arrow(cex = 1)
 
 # Ajouter la source et autres détails
-mf_credits(txt = "Source : Insee, données du recensement 2020.\nChamp : France métropolitaine sauf Corse.", cex = 1)
+mf_credits(txt = "Source : Insee, données du recensement 2020\nChamp : France métropolitaine sauf Corse", cex = 1)
 
 dev.off()
 
@@ -70,28 +70,33 @@ dev.off()
 
 png("macron_map.png", width = 14, height = 12, units = "in", res = 300)
 
+pal_orange <- c("#FFE5B4", "#FFB347", "#FF8C00", "#CC5500")  # clair → foncé
+
 mf_map(comsf,
        var = "pourc_macron_17",
        type = "choro",
-       breaks = c(100, 30, 25, 20, 0),  # 4 classes personnalisées
-       pal = "Blues",
+       breaks = c(0, 20, 25, 30, 100),  # ordre croissant pour choroplethe
+       pal = pal_orange,
        border = NA,
        leg_title = "Vote Macron 2017 (%)",
        leg_pos = NA
 )
 
-mf_legend(type = "typo", val = c("< 20 %", "20 à 25 %", "25 à 30 %", "> 30 %"), pal = rev("Blues"), pos = "left", title = "Pourcentage de vote Macron parmi\nles voix exprimées au premier tour", size = 1.3)
+mf_legend(
+  type = "typo",
+  val = c("< 20 %", "20 à 25 %", "25 à 30 %", "> 30 %"),
+  pal = pal_orange,
+  pos = "left",
+  title = "Pourcentage de vote Macron parmi\nles voix exprimées au premier tour",
+  size = 1.3
+)
 
-mf_title("Résultats de Macron en 2017 par commune")
+#mf_title("Résultats de Macron en 2017 par commune")
 
-# Ajouter l'échelle
 mf_scale(cex = 1)
-
-# Ajouter l'orientation
 mf_arrow(cex = 1)
 
-# Ajouter la source et autres détails
-mf_credits(txt = "Source : Ministère de l'Intérieur, données du premier tour des élections présidentielles 2017.\nChamp : France métropolitaine sauf Corse.", cex = 1)
+mf_credits(txt = "Source : Ministère de l'Intérieur, données du premier tour des élections présidentielles 2017\nChamp : France métropolitaine sauf Corse", cex = 1)
 
 dev.off()
 
