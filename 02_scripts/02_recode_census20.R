@@ -182,6 +182,34 @@ ear20_cs29 <- census20_emp3 |>
   select(CODGEO, LIBGEO, starts_with("cs_")) |> 
   rename_all(tolower)
 
+
+
+
+
+# DIPLOME ----
+# DIPL19 
+# A : Aucun diplôme ou certificat d'études primaires
+# B : BEPC, brevet des collèges, DNB
+# C : CAP, BEP ou équivalent
+# D : Baccalauréat, brevet professionnel ou équivalent
+# E: Diplôme de l'enseignement supérieur de niveau bac + 2
+# F: Diplôme de l'enseignement supérieur de niveau bac + 3 ou bac + 4
+# G: Diplôme de l'enseignement supérieur de niveau bac + 5 ou plus
+
+
+ear20_dipl <- census20_for2 |> 
+  mutate(
+    dipl_a = rowSums(across(contains("DIPL_19A")), na.rm = TRUE),
+    dipl_b = rowSums(across(contains("DIPL_19B")), na.rm = TRUE),
+    dipl_c = rowSums(across(contains("DIPL_19C")), na.rm = TRUE),
+    dipl_d = rowSums(across(contains("DIPL_19D")), na.rm = TRUE),
+    dipl_e = rowSums(across(contains("DIPL_19E")), na.rm = TRUE),
+    dipl_f = rowSums(across(contains("DIPL_19F")), na.rm = TRUE),
+    dipl_g = rowSums(across(contains("DIPL_19G")), na.rm = TRUE)
+  ) |> 
+  select(CODGEO, LIBGEO, starts_with("dipl")) |> 
+  rename_all(tolower)
+
 # TYPES DE LOGEMENTS ----
 # LOG1 --> CATL
 
@@ -200,23 +228,24 @@ ear20_log <- census20_log1 |>
          log_logoccas = rowSums(across(contains("CATL2")), na.rm = TRUE),
          log_ressecond = rowSums(across(contains("CATL3")), na.rm = TRUE),
          log_vacants = rowSums(across(contains("CATL4")), na.rm = TRUE),
+         log_tot = log_resprinc + log_logoccas + log_ressecond + log_vacants,
          
-         log_vacants_pourc = 
-           100 * (log_vacants / (log_resprinc +
-                                   log_logoccas +
-                                   log_ressecond +
-                                   log_ressecond)),
-         log_vacants_pourc = if_else(
-           log_resprinc +
-             log_logoccas +
-             log_ressecond +
-             log_ressecond == 0,
-           NA_integer_,
-           log_vacants_pourc),
-         log_vacants_pourc = if_else(
-           log_vacants_pourc > 100,
-           NA_integer_,
-           log_vacants_pourc)) |>
+         log_vacants_pourc = if_else(log_tot == 0,
+           NA_integer_, 
+           100 * log_vacants / log_tot),
+         
+         log_ressecond_pourc = if_else(log_tot == 0,
+           NA_integer_, 
+           100 * log_ressecond / log_tot),
+         
+         log_logoccas_pourc = if_else(log_tot == 0,
+           NA_integer_, 
+           100 * log_logoccas / log_tot),
+         
+         log_resprinc_pourc = if_else(log_tot == 0,
+           NA_integer_, 
+           100 * log_resprinc / log_tot)
+         ) |>
   select(CODGEO, LIBGEO, starts_with("log_")) |> 
   rename_all(tolower)
 
@@ -274,6 +303,8 @@ ear20_age <- census20_pop1B |>
                                ends_with('015')))), na.rm=TRUE),
           Age_q16_20 = rowSums(across(any_of(c(ends_with('016'),ends_with('017'),ends_with('018'),ends_with('019'),
                                   ends_with('020')))), na.rm=TRUE),
+          Age_q18_20 = rowSums(across(any_of(c(ends_with('021'),ends_with('022'),ends_with('023'),ends_with('024'),
+                                  ends_with('025')))), na.rm=TRUE),
           Age_q21_25 = rowSums(across(any_of(c(ends_with('021'),ends_with('022'),ends_with('023'),ends_with('024'),
                                   ends_with('025')))), na.rm=TRUE),
           Age_q26_30 = rowSums(across(any_of(c(ends_with('026'),ends_with('027'),ends_with('028'),ends_with('029'),
@@ -310,7 +341,7 @@ ear20_age <- census20_pop1B |>
   rename_all(tolower)
 #Valeur moyenne de l'âge de la population et répartition en quartiles   
 age<- census20_pop1B%>% 
-  pivot_longer(cols=starts_with("SEXE"), names_to = "Age",values_to = "Nombre")%>%
+  pivot_longer(cols=starts_with("SEXE"), names_to = "Age",values_to = "Nombre") %>%
   mutate(sexe=substr(Age,5,5),
          Age=as.numeric(substr(Age, 14,16)))%>%
   group_by(CODGEO,LIBGEO,Age)%>%
@@ -321,6 +352,16 @@ age<- census20_pop1B%>%
             age_q1=wtd.quantile(Age,Nombre,p=c(0.25,0.5,0.75), na.rm = TRUE )[1],
             age_q2=wtd.quantile(Age,Nombre,p=c(0.25,0.5,0.75), na.rm = TRUE )[2],
             age_q3=wtd.quantile(Age,Nombre,p=c(0.25,0.5,0.75), na.rm = TRUE )[3])%>%
+  rename_all(tolower)
+
+# SEXE
+
+sexe <- census20_pop1B |> 
+  mutate(nb_h=rowSums(across(starts_with("SEXE1")), na.rm = TRUE),
+         nb_f=rowSums(across(starts_with("SEXE2")), na.rm = TRUE),
+         prop_h = 100 * nb_h/(nb_h+nb_f)
+         ) |> 
+  select(CODGEO,LIBGEO,nb_h,nb_f,prop_h) |> 
   rename_all(tolower)
 
 # DENSITE URBAINE ----
@@ -338,8 +379,10 @@ communes <- ear20_emploi |>
   left_join(ear20_log) |> 
   left_join(ear20_immi) |> 
   left_join(ear20_natio) |> 
-  left_join(age)|>
-  left_join(ear20_age)|>
+  left_join(ear20_age) |>
+  left_join(ear20_dipl) |>
+  left_join(age) |>
+  left_join(sexe) |>
   left_join(densite_communes)
 
 communes<- communes%>% mutate (across(c(age_moy,pop, age_q1,age_q2,age_q3), ~replace_na(.x,0)))
