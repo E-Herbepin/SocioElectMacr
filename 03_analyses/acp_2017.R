@@ -12,6 +12,8 @@ source("02_scripts/00_setup.R")
 source("02_scripts/01_import.R")
 source("02_scripts/05_recode_PresF.R")
 
+
+
 # azeazeazeazeazaze
 
 PresFrural <- PresF %>%
@@ -334,7 +336,82 @@ coord <- res_PCA$var$coord |>
     )
   )
 
-  
+# Axe 1:2 ----
+lim = .7
+
+coord |>
+  ggplot(aes(x = Dim.1, y = Dim.2, label = Variable, color = type)) +
+  geom_hline(yintercept = 0, color = "grey") +
+  geom_vline(xintercept = 0, color = "grey") +
+  geom_point(size = 2, show.legend = FALSE) +
+  geom_segment(
+    data = coord |>
+      filter(
+        (Dim.1 > lim | Dim.1 < -lim | Dim.2 > lim | Dim.2 < -lim) &
+          !grepl("^Code Region", Variable)
+      ),
+    aes(xend = 0, yend = 0),
+    arrow = arrow(length = unit(0.30, "cm"), ends = "first", type = "closed"),
+    show.legend = FALSE
+  ) +
+  geom_label_repel(
+    data = coord |>
+      filter(
+        (grepl("^Code Region", Variable) &
+           (abs(Dim.1) > 2 * lim | abs(Dim.2) > 2 * lim)) |
+          (!grepl("^Code Region", Variable) &
+             (abs(Dim.1) > lim | abs(Dim.2) > lim))
+      ) |>
+      mutate(
+        type = ifelse(
+          Variable %in%
+            c(
+              "Bourgs ruraux",
+              "Rural à habitat dispersé",
+              "Rural à habitat très dispersé"
+            ),
+          "Densité",
+          type
+        )
+      ),
+    aes(
+      x = Dim.1,
+      y = Dim.2,
+      label = Variable,
+      colour = type
+    ),
+    inherit.aes = FALSE,
+    max.overlaps = Inf,
+    max.iter = 100000,
+    max.time = 10,
+    segment.curvature = -0.1,
+    segment.ncp = 3,
+    segment.angle = 20,
+    force = 10,
+  ) +
+  labs(
+    x = "Axe 1",
+    y = "Axe 2",
+    color = "Type de variable"
+  ) +
+  scale_color_manual(
+    name = "Type de variable",
+    values = c(
+      "Densité" = "green",
+      "Active" = "red",
+      "Supplémentaire" = "blue"
+    ),
+    labels = c("Densité", "Active", "Supplémentaire")
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 10),
+    axis.text.y = element_text(size = 10),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    plot.title = element_text(hjust = 0.5)
+  )
+ggsave("PCA_axes1_2_2017.png", width = 15, height = 10, dpi = 1000)
 
 # Axe 3:4 ----
 lim = .3
@@ -408,7 +485,7 @@ coord |>
     axis.title.y = element_text(size = 12),
     plot.title = element_text(hjust = 0.5)
   )
-ggsave("PCA_axes3_4.png", width = 15, height = 10, dpi = 1000)
+ggsave("PCA_axes3_4_2017.png", width = 15, height = 10, dpi = 1000)
 
 # Axe 1:4 ----
 
@@ -860,3 +937,36 @@ coord |>
   )
 
 ggsave("PCA_axes9_10.png", width = 15, height = 10, dpi = 1000)
+
+# 1. Charger les librairies nécessaires
+library(FactoMineR)
+library(factoextra)
+library(dplyr)
+library(ade4)
+library(questionr)
+
+# 2. Extraire les coordonnées des individus sur les 15 premières dimensions
+ind_coord <- res_PCA$ind$coord[, 1:5]
+
+# 3. Calcul de la distance euclidienne
+d <- dist(ind_coord)
+
+# 4. Réalisation de la CAH (méthode de Ward)
+cah <- hclust(d, method = "ward.D2")
+
+# 5. Affichage du dendrogramme
+plot(cah, labels = FALSE, hang = -1, main = "Dendrogramme de la CAH")
+
+# 6. Découpage en k groupes (ex: 4)
+groupes <- cutree(cah, k = 4)
+
+# 7. Ajout des groupes à la base de données
+PresFrural$Groupe_CAH <- groupes
+
+# 8. Visualisation des groupes sur le plan factoriel
+fviz_pca_ind(res_PCA,
+             habillage = groupes,
+             palette = "jco",
+             addEllipses = TRUE,
+             ellipse.level = 0.95,
+             repel = TRUE)

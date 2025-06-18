@@ -53,7 +53,7 @@ mf_map(comsf,
 mf_legend(type = "typo", val = c("Grands centres urbains", "Centres urbains intermédiaires", "Ceintures urbaines", "Petites villes", "Bourgs ruraux","Rural à habitat dispersé", "Rural à habitat très dispersé"), pal = libdens_palette, pos = "left", title = "Catégories de densité", size = 1.3)
 
 # Ajouter un titre à la carte
-#mf_title("Carte de la densité de population par commune")
+mf_title("Carte de la densité de population par commune")
 
 # Ajouter l'échelle
 mf_scale(cex = 1)
@@ -91,7 +91,7 @@ mf_legend(
   size = 1.3
 )
 
-#mf_title("Résultats de Macron en 2017 par commune")
+mf_title("Résultats de Macron en 2017 par commune")
 
 mf_scale(cex = 1)
 mf_arrow(cex = 1)
